@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-11-26) — System-wide Recycle Bin (`viewMode='trash'`, `SystemTrashView`), Dashboard soft-delete + Undo Toast & 2-tier permissions verified against source |
+| **Verified At Commit** | (2026-11-26) — Borderless ghost row actions (`ghostActionBtnStyle`) & Portal overflow menu (`formActionMenu`) across Dashboard list tables verified against source |
 
 ### Quick File Index
 
@@ -210,8 +210,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-28 | `CURRENT` | **Direct Report View Routing & SubmissionManager Report Action:** (1) Updated `App.tsx` regex matching and URL resolution to recognize `/f/:formSlug/r/:subId` and `/r/:subId` routes alongside `/s/:subId`, passing `initialTab` (`form` or `report`) to `SubmissionViewer`. (2) Connected `onOpenReportBuilder` callback through `Dashboard.tsx` into `SubmissionManager.tsx` and `FormFiller.tsx`. |
-| 2026-09-30 | `CURRENT` | **Dashboard Submissions Tab Integration:** (1) Suppressed top-right List/Grid toggle buttons when `viewMode === 'submissions'`, establishing 100% list mode for the audit trail. (2) Connected `onOpenFormFiller` prop directly into `<SubmissionManager />` to support 1-click new record creation from form accordion headers. |
 | 2026-09-30 | `CURRENT` | **Tab Forms Actions Streamlining (Option 1):** (1) Streamlined Actions column in Tab Forms List view into 2 direct 28x28px square icon buttons and 1 context dropdown button (`[ ••• ]`). (2) Dropdown menu houses secondary actions. (3) Reduced column width to 120px (12%). (4) Extracted reusable `handlePrintBlankForm` pure utility. |
 | 2026-09-30 | `CURRENT` | **Search Bar Cleanup & Unification (`DashboardToolbar`):** (1) Extracted shared `DashboardToolbar` component with standardized 38px height, rounded-6px border, fixed search icon, and 1-click `(✕)` quick-clear button. (2) Standardized 100% English placeholders and action buttons. (3) Added `formProcessFilter` state in Tab Forms. |
 | 2026-09-30 | `CURRENT` | **Visual Frame Alignment & Toolbar Hoisting (Direction 1):** (1) Fixed search input width to 360px on `DashboardToolbar`. (2) Hoisted Submissions toolbar to `Dashboard.tsx` root level. (3) Standardized vertical spacing rhythm to 1.25rem (20px). |
@@ -227,3 +225,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | 2026-11-04 | `CURRENT` | **App-level Code Splitting & Instant Form Link Resolution (`App.tsx`):** (1) Implemented `React.lazy()` code splitting for heavy sub-systems (`ProcessEditor`, `ProcessReader`, `SubmissionViewer`, `UserManagement`, `ReportBuilder`, `FormReport`), reducing initial monolithic bundle from 3.74 MB to ~735 KB (-80.3% payload). (2) Wrapped dynamic sub-systems in granular `<Suspense fallback={<ModuleLoadingFallback />}>` with CSS spin animation, leaving `Dashboard` and `FormFiller` eager and instantaneous. (3) Connected `data.formTemplate` returned from `/api/forms/resolve` to `setPreloadedFormTemplate()`, eliminating network waterfall on public form links. |
 | 2026-11-26 | `CURRENT` | **System-Wide Recycle Bin & Undo Workflow (`App.tsx`, `Dashboard.tsx`, `SystemTrashView.tsx`, `types.ts`):** (1) Added `TrashItem` & `TrashCounts` types and `viewMode='trash'` accessible via Dashboard switcher pill and user dropdown menu. (2) Added soft-delete `[Trash2]` triggers using `ConfirmModal` across Processes, Forms (List & Card views), and Reports tabs with 5-second Undo Toast (`handleUndoSoftDelete`) and `swr_*` cache synchronization. (3) Enforced 2-tier permissions: Admin/Supervisor move to trash & restore; Admin only can permanently delete or empty trash. |
+| 2026-11-26 | `CURRENT` | **Dashboard Row Actions Streamlining & Portal Popover (`Dashboard.tsx`):** Replaced 5-box button grid in Tab Forms List View with borderless ghost actions (`Điền`, `Edit2`, `MoreHorizontal` overflow trigger) paired with `ReactDOM.createPortal` fixed popover (`formActionMenu`: `Nhân bản`, `Báo cáo`, `Xóa`), avoiding CSS overflow clipping; propagated uniform `ghostActionBtnStyle` to Tab Processes and Tab Reports list tables. |

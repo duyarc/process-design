@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import type { Process, ReportTemplateISO, TrashEntityType } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Calendar, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, Eye, Calendar, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import DashboardToolbar from './common/DashboardToolbar';
@@ -111,6 +112,62 @@ export const Dashboard: React.FC<DashboardProps> = ({
     note?: string;
   } | null>(null);
   const [deletingTarget, setDeletingTarget] = useState(false);
+  const [formActionMenu, setFormActionMenu] = useState<{
+    form: any;
+    top: number;
+    right: number;
+    openUpward: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!formActionMenu) return;
+    const dismiss = () => setFormActionMenu(null);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismiss();
+    };
+    window.addEventListener('click', dismiss);
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => {
+      window.removeEventListener('click', dismiss);
+      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [formActionMenu]);
+
+  const openFormActionMenu = (e: React.MouseEvent<HTMLButtonElement>, form: any) => {
+    e.stopPropagation();
+    if (formActionMenu?.form?.formId === form.formId) {
+      setFormActionMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const openUpward = window.innerHeight - rect.bottom < 160;
+    setFormActionMenu({
+      form,
+      top: openUpward ? rect.top - 4 : rect.bottom + 4,
+      right: Math.max(8, window.innerWidth - rect.right),
+      openUpward
+    });
+  };
+
+  const ghostActionBtnStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    margin: 0,
+    border: 'none',
+    borderRadius: '6px',
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    transition: 'background 0.15s ease, color 0.15s ease'
+  };
 
   const toggleProcessGroup = (processId: string) => {
     setCollapsedProcessGroups(prev => ({
@@ -830,56 +887,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
                          <Calendar size={11} /> {new Date(currentRep.lastUpdated).toLocaleDateString('vi-VN')}
                        </span>
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                        <button 
-                          className="btn btn-secondary btn-sm"
+                    <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
+                        <button
+                          type="button"
                           title="View Process"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.75rem',
-                            height: '26px',
-                            margin: 0
-                          }}
+                          style={ghostActionBtnStyle}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--primary)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                           onClick={() => onSelectProcess(currentRep.id)}
                         >
-                          <Eye size={12} />
+                          <Eye size={14} />
                         </button>
-                        <button 
-                          className="btn btn-secondary btn-sm"
+                        <button
+                          type="button"
                           title="Print Process"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.75rem',
-                            height: '26px',
-                            margin: 0
-                          }}
+                          style={ghostActionBtnStyle}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                           onClick={() => onPrintProcess ? onPrintProcess(currentRep.id) : onSelectProcess(currentRep.id)}
                         >
-                          <Printer size={12} />
+                          <Printer size={14} />
                         </button>
                         {hasPermission('design_document') && (
                           <button
                             type="button"
-                            className="btn btn-secondary btn-sm"
                             title="Chuyển vào Thùng rác"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: '0.25rem 0.45rem',
-                              height: '26px',
-                              margin: 0,
-                              color: 'var(--text-secondary)'
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                            style={ghostActionBtnStyle}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                             onClick={() => setDeleteTarget({
                               entityType: 'process',
                               id: currentRep.id,
@@ -888,7 +924,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               note: 'Quy trình và các liên kết sẽ được ẩn đi và giữ nguyên dữ liệu để bạn có thể khôi phục bất kỳ lúc nào.'
                             })}
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         )}
                       </div>
@@ -1265,26 +1301,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               {status}
                             </span>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                          <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
                               {onOpenReportBuilder && (
                                 <button
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
+                                  type="button"
+                                  style={ghostActionBtnStyle}
                                   title="Chỉnh sửa Mẫu Báo cáo"
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
                                 >
-                                  <Edit2 size={12} />
+                                  <Edit2 size={14} />
                                 </button>
                               )}
                               {hasPermission('design_document') && (
                                 <button
                                   type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ padding: '0.25rem 0.45rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px', color: 'var(--text-secondary)' }}
+                                  style={ghostActionBtnStyle}
                                   title="Chuyển vào Thùng rác"
-                                  onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => setDeleteTarget({
                                     entityType: 'report',
                                     id: rep.reportId,
@@ -1293,7 +1330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     note: 'Mẫu báo cáo sẽ được chuyển vào Thùng rác và có thể khôi phục lại bất kỳ lúc nào.'
                                   })}
                                 >
-                                  <Trash2 size={12} />
+                                  <Trash2 size={14} />
                                 </button>
                               )}
                             </div>
@@ -1676,86 +1713,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <Calendar size={11} /> {formattedDate}
                               </span>
                             </td>
-                            <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
-                                {/* Nút 1: Điền biểu mẫu */}
+                            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
+                                {/* Nút chính: Điền biểu mẫu */}
                                 <button
                                   type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  title="Điền biểu mẫu (Fill Form)"
+                                  title="Điền biểu mẫu"
                                   onClick={() => handleFillAction(form)}
-                                  style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    height: '28px',
+                                    padding: '0 0.5rem',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    background: 'transparent',
+                                    color: 'var(--primary)',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'background 0.15s ease'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                                 >
-                                  <FilePlus size={13} style={{ color: 'var(--primary)' }} />
+                                  <FilePlus size={13} />
+                                  <span>Điền</span>
                                 </button>
 
-                                {/* Nút 2: Chỉnh sửa thiết kế */}
+                                {/* Nút nhanh 2: Sửa thiết kế */}
                                 {hasPermission('design_document') && (
                                   <button
                                     type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    title="Chỉnh sửa thiết kế (Edit Template)"
+                                    title="Sửa thiết kế"
                                     onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                    style={ghostActionBtnStyle}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   >
                                     <Edit2 size={13} />
                                   </button>
                                 )}
 
-                                {/* Nút 3: Nhân bản biểu mẫu */}
+                                {/* Menu phụ [⋯]: Nhân bản, Báo cáo, Xóa */}
                                 {hasPermission('design_document') && (
                                   <button
                                     type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    disabled={duplicatingFormId === form.formId}
-                                    title="Nhân bản biểu mẫu (Duplicate)"
-                                    onClick={() => handleDuplicateFormDirect(form)}
-                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
-                                  >
-                                    {duplicatingFormId === form.formId ? (
-                                      <div className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
-                                    ) : (
-                                      <Copy size={13} />
-                                    )}
-                                  </button>
-                                )}
-
-                                {/* Nút 4: Cấu hình Mẫu Báo cáo */}
-                                {hasPermission('design_document') && onOpenReportBuilder && (
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    title="Cấu hình Mẫu Báo cáo (Report Template)"
-                                    onClick={() => {
-                                      const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
-                                      onOpenReportBuilder(form.formId, linkedRep?.reportId);
+                                    title="Thao tác khác"
+                                    onClick={(e) => openFormActionMenu(e, form)}
+                                    style={{
+                                      ...ghostActionBtnStyle,
+                                      background: formActionMenu?.form?.formId === form.formId ? '#f1f5f9' : 'transparent',
+                                      color: formActionMenu?.form?.formId === form.formId ? 'var(--text-primary)' : 'var(--text-secondary)'
                                     }}
-                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={e => {
+                                      const isOpen = formActionMenu?.form?.formId === form.formId;
+                                      e.currentTarget.style.background = isOpen ? '#f1f5f9' : 'transparent';
+                                      e.currentTarget.style.color = isOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                    }}
                                   >
-                                    <SlidersHorizontal size={13} />
-                                  </button>
-                                )}
-
-                                {/* Nút 5: Chuyển vào Thùng rác */}
-                                {hasPermission('design_document') && (
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    title="Chuyển vào Thùng rác"
-                                    onClick={() => setDeleteTarget({
-                                      entityType: 'form',
-                                      id: form.formId,
-                                      title: form.formTitle || form.formId,
-                                      version: form.version,
-                                      note: form.linkedProcesses.length > 0
-                                        ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
-                                        : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
-                                    })}
-                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', color: 'var(--text-secondary)' }}
-                                    onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                  >
-                                    <Trash2 size={13} />
+                                    <MoreHorizontal size={15} />
                                   </button>
                                 )}
                               </div>
@@ -1980,6 +2000,130 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   );
                 })}
               </div>
+            )}
+
+            {formActionMenu && ReactDOM.createPortal(
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'fixed',
+                  top: formActionMenu.openUpward ? undefined : `${formActionMenu.top}px`,
+                  bottom: formActionMenu.openUpward ? `${window.innerHeight - formActionMenu.top}px` : undefined,
+                  right: `${formActionMenu.right}px`,
+                  zIndex: 9998,
+                  minWidth: '152px',
+                  background: '#ffffff',
+                  border: '1px solid var(--neutral-border)',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05)',
+                  padding: '4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px'
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={duplicatingFormId === formActionMenu.form.formId}
+                  onClick={() => {
+                    const target = formActionMenu.form;
+                    setFormActionMenu(null);
+                    handleDuplicateFormDirect(target);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>{duplicatingFormId === formActionMenu.form.formId ? 'Đang nhân bản...' : 'Nhân bản'}</span>
+                </button>
+
+                {onOpenReportBuilder && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = formActionMenu.form;
+                      setFormActionMenu(null);
+                      const linkedRep = reportTemplates.find(r => r.linkedFormId === target.formId);
+                      onOpenReportBuilder(target.formId, linkedRep?.reportId);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <SlidersHorizontal size={13} style={{ color: 'var(--text-secondary)' }} />
+                    <span>Báo cáo</span>
+                  </button>
+                )}
+
+                <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = formActionMenu.form;
+                    setFormActionMenu(null);
+                    setDeleteTarget({
+                      entityType: 'form',
+                      id: target.formId,
+                      title: target.formTitle || target.formId,
+                      version: target.version,
+                      note: target.linkedProcesses.length > 0
+                        ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
+                        : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
+                    });
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--danger, #dc2626)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Trash2 size={13} />
+                  <span>Xóa</span>
+                </button>
+              </div>,
+              document.body
             )}
 
             {processSelectDialog && (
