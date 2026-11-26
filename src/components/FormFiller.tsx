@@ -1811,7 +1811,7 @@ function FormFillerInner({
                       title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                     >
                       <span>💡</span>
-                      <span>Hướng dẫn</span>
+                      <span>Guidance</span>
                       {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                     </button>
                   )}
@@ -2071,7 +2071,7 @@ function FormFillerInner({
                               title={isExpanded ? "Thu gọn hướng dẫn" : "Xem hướng dẫn điền câu hỏi"}
                             >
                               <span>💡</span>
-                              <span>Hướng dẫn</span>
+                              <span>Guidance</span>
                               {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                             </button>
                           )}
@@ -3070,7 +3070,7 @@ function FormFillerInner({
                         title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                       >
                         <span>💡</span>
-                        <span>Hướng dẫn</span>
+                        <span>Guidance</span>
                         {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       </button>
                     </div>
@@ -3654,7 +3654,7 @@ function FormFillerInner({
                                           }}
                                         >
                                           <span>💡</span>
-                                          <span>Hướng dẫn</span>
+                                          <span>Guidance</span>
                                           {expandedGuidanceMap[`${block.id}_${row.id}`] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                         </button>
                                         {expandedGuidanceMap[`${block.id}_${row.id}`] && (
@@ -4294,7 +4294,7 @@ function FormFillerInner({
                 className="btn btn-secondary btn-sm"
                 onClick={isEditModeActive ? handleCancelEdit : onBack}
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: 0 }}
-                title={isEditModeActive ? "Hủy bỏ các thay đổi và quay lại xem" : (isPublicGuestMode ? "Về biểu mẫu" : "Quay lại")}
+                title={isEditModeActive ? "Discard changes and return to view" : (isPublicGuestMode ? "Back to form" : "Back")}
               >
                 <ArrowLeft size={14} />
               </button>
@@ -4302,11 +4302,11 @@ function FormFillerInner({
 
             {isEditModeActive ? (
               <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e40af', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
+                <Pencil size={13} /> Edit Record <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
               </span>
             ) : (
               <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+                Record <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
               </span>
             )}
           </div>
@@ -4340,7 +4340,7 @@ function FormFillerInner({
                     outline: 'none',
                     flexShrink: 0
                   }}
-                  title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+                  title={viewMode === 'focus' ? 'Section focus mode (On)' : 'Full form view (Off)'}
                 >
                   <span
                     style={{
@@ -4375,17 +4375,17 @@ function FormFillerInner({
                   borderColor: '#99f6e4',
                   background: submissionTab === 'form' ? '#f0fdfa' : '#ffffff'
                 }}
-                title={submissionTab === 'form' ? 'Xem báo cáo đánh giá KPI & biểu đồ' : 'Quay lại xem biểu mẫu ban đầu'}
+                title={submissionTab === 'form' ? 'View KPI evaluation report & charts' : 'Return to original form'}
               >
                 {submissionTab === 'form' ? (
                   <>
                     <BarChart2 size={13} style={{ color: 'var(--primary)' }} />
-                    <span>Xem báo cáo</span>
+                    <span>View Report</span>
                   </>
                 ) : (
                   <>
                     <FileText size={13} style={{ color: 'var(--primary)' }} />
-                    <span>Xem phiếu gốc</span>
+                    <span>View Form</span>
                   </>
                 )}
               </button>
@@ -4409,17 +4409,17 @@ function FormFillerInner({
                   borderColor: copiedShareLink ? '#86efac' : undefined,
                   transition: 'all 0.15s ease'
                 }}
-                title={submissionTab === 'report' ? 'Sao chép link xem Báo cáo' : 'Sao chép link xem Phiếu'}
+                title={submissionTab === 'report' ? 'Copy report link' : 'Copy record link'}
               >
                 {copiedShareLink ? (
                   <>
                     <Check size={13} />
-                    <span>Đã chép!</span>
+                    <span>Copied!</span>
                   </>
                 ) : (
                   <>
                     <Share2 size={13} />
-                    <span>Chia sẻ</span>
+                    <span>Share</span>
                   </>
                 )}
               </button>
@@ -4434,7 +4434,7 @@ function FormFillerInner({
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem', whiteSpace: 'nowrap' }}
               >
                 <Save size={13} />
-                <span>{submitting ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+                <span>{submitting ? 'Saving...' : 'Save Changes'}</span>
               </button>
             ) : (
               <>
@@ -4465,10 +4465,10 @@ function FormFillerInner({
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = isAllGuidanceExpanded ? '#f0fdfa' : 'none';
                     }}
-                    title={isAllGuidanceExpanded ? "Thu gọn toàn bộ hướng dẫn (In bản sạch)" : "Mở rộng toàn bộ hướng dẫn (In kèm hướng dẫn)"}
+                    title={isAllGuidanceExpanded ? "Collapse all guidance (clean print)" : "Expand all guidance (print with guidance)"}
                   >
                     <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: isAllGuidanceExpanded ? 'none' : 'grayscale(100%) opacity(0.7)' }}>💡</span>
-                    <span>Hướng dẫn</span>
+                    <span>Guidance</span>
                     <span style={{
                       width: '5px',
                       height: '5px',
@@ -4485,10 +4485,10 @@ function FormFillerInner({
                   className="btn btn-secondary btn-sm" 
                   onClick={handlePrintWYSIWYG}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
-                  title={submissionTab === 'report' ? 'In Báo cáo đánh giá' : 'In biểu mẫu (WYSIWYG)'}
+                  title={submissionTab === 'report' ? 'Print evaluation report' : 'Print form (WYSIWYG)'}
                 >
                   <Printer size={13} style={{ color: '#0d9488' }} />
-                  <span>In</span>
+                  <span>Print</span>
                 </button>
 
                 {/* Chỉnh sửa button */}
@@ -4501,7 +4501,7 @@ function FormFillerInner({
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
                     >
                       <Pencil size={13} />
-                      <span>Chỉnh sửa</span>
+                      <span>Edit</span>
                     </button>
                   )
                 ) : (
@@ -4513,7 +4513,7 @@ function FormFillerInner({
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
                     >
                       <Pencil size={13} />
-                      <span>Chỉnh sửa</span>
+                      <span>Edit</span>
                     </button>
                   )
                 )}
@@ -4533,7 +4533,7 @@ function FormFillerInner({
             {isPublicViewOnly && (
               <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '0.25rem 0.55rem', borderRadius: '4px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Eye size={12} />
-                <span>Chỉ xem</span>
+                <span>View Only</span>
               </span>
             )}
           </div>
@@ -4565,7 +4565,7 @@ function FormFillerInner({
                     transition: 'background-color 0.2s ease',
                     outline: 'none'
                   }}
-                  title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+                  title={viewMode === 'focus' ? 'Section focus mode (On)' : 'Full form view (Off)'}
                 >
                   <span
                     style={{
@@ -4609,10 +4609,10 @@ function FormFillerInner({
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = isAllGuidanceExpanded ? '#f0fdfa' : 'none';
               }}
-              title={isAllGuidanceExpanded ? "Thu gọn toàn bộ hướng dẫn (In bản sạch)" : "Mở rộng toàn bộ hướng dẫn (In kèm hướng dẫn)"}
+              title={isAllGuidanceExpanded ? "Collapse all guidance (clean print)" : "Expand all guidance (print with guidance)"}
             >
               <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: isAllGuidanceExpanded ? 'none' : 'grayscale(100%) opacity(0.7)' }}>💡</span>
-              <span>Hướng dẫn</span>
+              <span>Guidance</span>
               <span style={{
                 width: '5px',
                 height: '5px',
@@ -4628,10 +4628,10 @@ function FormFillerInner({
               className="btn btn-secondary btn-sm" 
               onClick={handlePrintWYSIWYG}
               style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-              title="In biểu mẫu (WYSIWYG)"
+              title="Print form (WYSIWYG)"
             >
               <Printer size={13} style={{ color: '#0d9488' }} />
-              <span>In</span>
+              <span>Print</span>
             </button>
 
             {/* Single Copy Link Button */}
@@ -4641,10 +4641,10 @@ function FormFillerInner({
                 className="btn btn-secondary btn-sm"
                 onClick={handleCopyShareLink}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-                title={isPublic ? "Sao chép link công khai cho khách điền" : "Sao chép link biểu mẫu (yêu cầu đăng nhập)"}
+                title={isPublic ? "Copy public form link" : "Copy internal form link (sign-in required)"}
               >
                 <Link2 size={13} />
-                <span>Sao chép link</span>
+                <span>Copy Link</span>
               </button>
             )}
           </div>
@@ -4653,7 +4653,7 @@ function FormFillerInner({
 
       {/* Main Canvas: Form Paper Card OR Report Card depending on submissionTab */}
       {submissionTab === 'report' && initialSubmission ? (
-        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Đang tải báo cáo...</div>}>
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading report...</div>}>
           <FormReport
             submissionId={initialSubmission.id}
             isEmbedded={true}
@@ -4955,7 +4955,7 @@ function FormFillerInner({
                 style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >
                 <ArrowLeft size={14} />
-                <span>Hủy bỏ</span>
+                <span>Cancel</span>
               </button>
             ) : (onBack || fromProcessParam) ? (
               <button 
@@ -4966,7 +4966,7 @@ function FormFillerInner({
                 style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >
                 <ArrowLeft size={14} />
-                <span>Hủy bỏ</span>
+                <span>Cancel</span>
               </button>
             ) : null}
           </div>
@@ -4982,8 +4982,8 @@ function FormFillerInner({
               {isEditModeActive && <Save size={15} />}
               <span>
                 {submitting 
-                  ? (isEditModeActive ? 'Đang lưu...' : 'Submitting...') 
-                  : (isEditModeActive ? 'Lưu thay đổi' : 'Submit')}
+                  ? (isEditModeActive ? 'Saving...' : 'Submitting...') 
+                  : (isEditModeActive ? 'Save Changes' : 'Submit')}
               </span>
             </button>
           </div>
@@ -5053,7 +5053,7 @@ function FormFillerInner({
             </div>
           )}
           <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '8px' }}>
-            Nhấp chuột hoặc bấm phím Esc để đóng
+            Click anywhere or press Esc to close
           </div>
         </div>
       )}

@@ -293,7 +293,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Không thể chuyển vào Thùng rác');
+        throw new Error(errData.error || 'Unable to move item to Trash');
       }
 
       // Sync local state + sessionStorage SWR caches immediately
@@ -320,7 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const targetSnapshot = deleteTarget;
       setDeleteTarget(null);
       setToast({
-        message: `Đã chuyển "${targetSnapshot.title}" vào Thùng rác.`,
+        message: `Moved "${targetSnapshot.title}" to Trash.`,
         type: 'success',
         undoItem: {
           entityType: targetSnapshot.entityType,
@@ -332,7 +332,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } catch (err) {
       console.error(err);
       setToast({
-        message: err instanceof Error ? err.message : 'Lỗi khi xóa mục đã chọn.',
+        message: err instanceof Error ? err.message : 'Error deleting selected item.',
         type: 'error'
       });
     } finally {
@@ -349,12 +349,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(undo)
       });
-      if (!res.ok) throw new Error('Không thể hoàn tác');
-      setToast({ message: 'Đã khôi phục thành công!', type: 'success' });
+      if (!res.ok) throw new Error('Unable to undo delete');
+      setToast({ message: 'Item restored successfully.', type: 'success' });
       await Promise.all([fetchProcesses(true), fetchTrashCount()]);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Lỗi khi hoàn tác.', type: 'error' });
+      setToast({ message: 'Error undoing delete.', type: 'error' });
     }
   };
 
@@ -589,7 +589,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const latestTs = getFormTimestamp(sortedUnlinked[0]);
         groupsList.push({
           processId: 'unlinked',
-          processTitle: 'Standalone Forms (Biểu mẫu độc lập)',
+          processTitle: 'Standalone Forms',
           status: undefined,
           latestFormTimestamp: latestTs,
           forms: sortedUnlinked.map(form => ({ form }))
@@ -761,7 +761,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                title="Chuyển vào Thùng rác"
+                title="Move to Trash"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -780,7 +780,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   id: currentRep.id,
                   title: currentRep.title,
                   version: currentRep.version,
-                  note: 'Quy trình và các liên kết sẽ được ẩn đi và giữ nguyên dữ liệu để bạn có thể khôi phục bất kỳ lúc nào.'
+                  note: 'This process and its links will be hidden safely and can be restored anytime.'
                 })}
               >
                 <Trash2 size={12} />
@@ -800,12 +800,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: isRetired ? '#f1f5f9' : '#f8fafc', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Process ID</th>
+                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Process ID</th>
                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '35%' }}>Title & Description</th>
                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '18%' }}>Version</th>
                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Status</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Last update</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Last Updated</th>
+                <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -823,7 +823,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', verticalAlign: 'middle' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                         {parentId}
                       </span>
@@ -887,8 +887,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                          <Calendar size={11} /> {new Date(currentRep.lastUpdated).toLocaleDateString('vi-VN')}
                        </span>
                     </td>
-                    <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
+                    <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                         <button
                           type="button"
                           title="View Process"
@@ -912,7 +912,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {hasPermission('design_document') && (
                           <button
                             type="button"
-                            title="Chuyển vào Thùng rác"
+                            title="Move to Trash"
                             style={ghostActionBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
@@ -921,7 +921,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               id: currentRep.id,
                               title: currentRep.title,
                               version: currentRep.version,
-                              note: 'Quy trình và các liên kết sẽ được ẩn đi và giữ nguyên dữ liệu để bạn có thể khôi phục bất kỳ lúc nào.'
+                              note: 'This process and its links will be hidden safely and can be restored anytime.'
                             })}
                           >
                             <Trash2 size={14} />
@@ -939,9 +939,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
   };
 
+  const segmentedTabBtnStyle = (active: boolean): React.CSSProperties => ({
+    height: '28px',
+    padding: '0 1rem',
+    borderRadius: '6px',
+    border: 'none',
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 0,
+    transition: 'all 0.15s ease',
+    background: active ? 'var(--primary)' : 'transparent',
+    color: active ? '#ffffff' : 'var(--text-secondary)',
+    boxShadow: active ? '0 1px 2px rgba(16, 163, 163, 0.25)' : 'none'
+  });
+
   return (
     <div>
-      {!(isViewingSubmission && viewMode === 'submissions') && (
+      {viewMode === 'processes' && (
         <div className="quote-card">
           <p className="quote-text">
             We believe <span className="highlight">common sense</span> and <span className="highlight">simplicity</span> are usually better guidelines than unnecessary sophistication and complexity.
@@ -954,33 +972,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* View Switcher Tabs */}
       {!(isViewingSubmission && viewMode === 'submissions') && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', minHeight: '48px', boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', minHeight: '48px', boxSizing: 'border-box' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
           <button
-            className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
             onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
-            style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+            style={segmentedTabBtnStyle(viewMode === 'processes')}
           >
             Processes
           </button>
           <button
-            className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
             onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
-            style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+            style={segmentedTabBtnStyle(viewMode === 'forms')}
           >
             Forms
           </button>
           <button
-            className={`btn btn-sm ${viewMode === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
             onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
-            style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+            style={segmentedTabBtnStyle(viewMode === 'submissions')}
           >
             Submissions
           </button>
           <button
-            className={`btn btn-sm ${viewMode === 'reports' ? 'btn-primary' : 'btn-secondary'}`}
+            type="button"
             onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
-            style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+            style={segmentedTabBtnStyle(viewMode === 'reports')}
           >
             Reports
           </button>
@@ -1004,17 +1022,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  height: '34px',
+                  height: '36px',
                   padding: '0 0.75rem',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   margin: 0
                 }}
-                title="Mở Thùng rác toàn hệ thống"
+                title="Open System Trash"
               >
                 <Trash2 size={13} />
-                <span>Thùng rác</span>
+                <span>Trash</span>
                 {trashCount > 0 && (
                   <span style={{
                     fontSize: '0.7rem',
@@ -1030,7 +1048,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             )}
             {viewMode !== 'submissions' && viewMode !== 'trash' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid var(--neutral-border)', height: '34px', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
               <button
                 type="button"
                 onClick={() => handleLayoutModeChange('list')}
@@ -1077,7 +1095,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
             </div>
             ) : (
-              <div style={{ height: '34px' }} />
+              <div style={{ height: '36px' }} />
             )}
           </div>
         )}
@@ -1092,7 +1110,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             viewMode === 'processes' ? "Search processes..." :
             viewMode === 'forms' ? "Search forms..." :
             viewMode === 'submissions' ? "Search submissions..." :
-            viewMode === 'trash' ? "Tìm theo mã, tên, người xóa..." :
+            viewMode === 'trash' ? "Search trash by ID, title, or deleted by..." :
             "Search reports..."
           }
           filters={
@@ -1134,7 +1152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
                     style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
                   >
-                    <option value="ALL">All Status</option>
+                    <option value="ALL">All Statuses</option>
                     <option value="PENDING">Pending Review</option>
                     <option value="VERIFIED">Verified</option>
                   </select>
@@ -1172,7 +1190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
               >
                 <ArrowLeft size={15} />
-                Quay lại
+                Back
               </button>
             ) : undefined
           }
@@ -1260,12 +1278,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Report ID</th>
+                      <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Report ID</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Report Title</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>Source Form</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
+                      <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1282,7 +1300,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
+                          <td style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', verticalAlign: 'middle' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                               {rep.reportId}
                             </span>
@@ -1301,13 +1319,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               {status}
                             </span>
                           </td>
-                          <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
+                          <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                               {onOpenReportBuilder && (
                                 <button
                                   type="button"
                                   style={ghostActionBtnStyle}
-                                  title="Chỉnh sửa Mẫu Báo cáo"
+                                  title="Edit Report Template"
                                   onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
@@ -1319,7 +1337,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <button
                                   type="button"
                                   style={ghostActionBtnStyle}
-                                  title="Chuyển vào Thùng rác"
+                                  title="Move to Trash"
                                   onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => setDeleteTarget({
@@ -1327,7 +1345,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     id: rep.reportId,
                                     title: rep.reportTitle,
                                     version: rep.version,
-                                    note: 'Mẫu báo cáo sẽ được chuyển vào Thùng rác và có thể khôi phục lại bất kỳ lúc nào.'
+                                    note: 'This report template will be moved to Trash and can be restored anytime.'
                                   })}
                                 >
                                   <Trash2 size={14} />
@@ -1405,7 +1423,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             });
 
             if (!saveFormRes.ok) {
-              let errText = 'Lỗi khi lưu biểu mẫu nhân bản';
+              let errText = 'Error saving duplicated form';
               try {
                 const errData = await saveFormRes.json();
                 if (errData?.error) errText = errData.error;
@@ -1451,7 +1469,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               });
 
               if (!saveProcRes.ok) {
-                let errText = 'Lỗi khi cập nhật quy trình cha';
+                let errText = 'Error updating parent process';
                 try {
                   const errData = await saveProcRes.json();
                   if (errData?.error) errText = errData.error;
@@ -1463,13 +1481,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
             // 6. Refresh dữ liệu và thông báo
             await fetchProcesses(true);
             setToast({
-              message: `Đã nhân bản thành công biểu mẫu ${newFormId}!`,
+              message: `Duplicated form ${newFormId} successfully.`,
               type: 'success'
             });
           } catch (err) {
-            console.error('Lỗi khi nhân bản biểu mẫu:', err);
+            console.error('Error duplicating form:', err);
             setToast({
-              message: err instanceof Error ? err.message : 'Lỗi khi nhân bản biểu mẫu.',
+              message: err instanceof Error ? err.message : 'Failed to duplicate form.',
               type: 'error'
             });
           } finally {
@@ -1597,8 +1615,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 padding: '0.3rem 0.65rem',
                                 background: '#ffffff',
                                 fontWeight: 600,
-                                borderColor: '#bae6fd',
-                                color: '#0284c7'
+                                borderColor: 'rgba(16, 163, 163, 0.3)',
+                                color: 'var(--primary)'
                               }}
                               title="View process flowchart & details"
                             >
@@ -1615,12 +1633,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Form ID</th>
+                                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Form ID</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '37%' }}>Form Title</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '14%' }}>Last Updated</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Actions</th>
+                                <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }}>Actions</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1642,7 +1660,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
-                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                            <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                                 {form.formId}
                               </span>
@@ -1713,12 +1731,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <Calendar size={11} /> {formattedDate}
                               </span>
                             </td>
-                            <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'center', alignItems: 'center' }}>
-                                {/* Nút chính: Điền biểu mẫu */}
+                            <td style={{ padding: '0.5rem 1rem 0.5rem 0.75rem', textAlign: 'right', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                {/* Primary action: Fill Form */}
                                 <button
                                   type="button"
-                                  title="Điền biểu mẫu"
+                                  title="Fill form"
                                   onClick={() => handleFillAction(form)}
                                   style={{
                                     display: 'inline-flex',
@@ -1740,14 +1758,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                                 >
                                   <FilePlus size={13} />
-                                  <span>Điền</span>
+                                  <span>Fill</span>
                                 </button>
 
-                                {/* Nút nhanh 2: Sửa thiết kế */}
+                                {/* Secondary action: Edit Template */}
                                 {hasPermission('design_document') && (
                                   <button
                                     type="button"
-                                    title="Sửa thiết kế"
+                                    title="Edit form template"
                                     onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
                                     style={ghostActionBtnStyle}
                                     onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
@@ -1757,11 +1775,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   </button>
                                 )}
 
-                                {/* Menu phụ [⋯]: Nhân bản, Báo cáo, Xóa */}
+                                {/* Overflow menu [⋯] */}
                                 {hasPermission('design_document') && (
                                   <button
                                     type="button"
-                                    title="Thao tác khác"
+                                    title="More actions"
                                     onClick={(e) => openFormActionMenu(e, form)}
                                     style={{
                                       ...ghostActionBtnStyle,
@@ -1917,7 +1935,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               ))}
                             </div>
                           ) : (
-                            <strong style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Biểu mẫu tự do (Không liên kết)</strong>
+                            <strong style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Standalone Form</strong>
                           )}
                         </div>
                       </div>
@@ -1926,12 +1944,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
                           <button 
                             className="btn btn-secondary btn-sm"
-                            style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.78rem', margin: 0, gap: '0.3rem', justifyContent: 'center', background: '#f0f9ff', borderColor: '#bae6fd', color: '#0369a1', fontWeight: 600 }}
-                            title="Điền biểu mẫu (Fill Form)"
+                            style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.78rem', margin: 0, gap: '0.3rem', justifyContent: 'center', background: '#f0fdfa', borderColor: 'rgba(16, 163, 163, 0.3)', color: 'var(--primary)', fontWeight: 600 }}
+                            title="Fill form"
                             onClick={() => handleFillAction(form)}
                           >
                             <FilePlus size={13} style={{ flexShrink: 0, color: 'var(--primary)' }} />
-                            Điền biểu mẫu
+                            Fill Form
                           </button>
                         
                           {hasPermission('design_document') && (
@@ -1939,16 +1957,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <button 
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title="Chỉnh sửa thiết kế (Edit Template)"
+                                title="Edit form template"
                                 onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
                               >
                                 <Edit2 size={13} style={{ flexShrink: 0 }} />
-                                Sửa
+                                Edit
                               </button>
                               <button 
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title="Nhân bản biểu mẫu (Duplicate)"
+                                title="Duplicate form"
                                 disabled={duplicatingFormId === form.formId}
                                 onClick={() => handleDuplicateFormDirect(form)}
                               >
@@ -1957,27 +1975,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 ) : (
                                   <Copy size={13} style={{ flexShrink: 0 }} />
                                 )}
-                                Nhân bản
+                                Duplicate
                               </button>
                               {onOpenReportBuilder && (
                                 <button 
                                   className="btn btn-secondary btn-sm"
                                   style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                  title="Cấu hình Mẫu Báo cáo (Report Template)"
+                                  title="Configure Report Template"
                                   onClick={() => {
                                     const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
                                     onOpenReportBuilder(form.formId, linkedRep?.reportId);
                                   }}
                                 >
                                   <SlidersHorizontal size={13} style={{ flexShrink: 0 }} />
-                                  Báo cáo
+                                  Report
                                 </button>
                               )}
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 'none', width: '28px', height: '28px', padding: 0, margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
-                                title="Chuyển vào Thùng rác"
+                                title="Move to Trash"
                                 onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
                                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                 onClick={() => setDeleteTarget({
@@ -1986,8 +2004,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   title: form.formTitle || form.formId,
                                   version: form.version,
                                   note: form.linkedProcesses.length > 0
-                                    ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
-                                    : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
+                                    ? 'Process links, submitted records, and attached photos will be preserved; restoring this form reactivates it automatically.'
+                                    : 'This form will be stored in Trash and can be restored anytime.'
                                 })}
                               >
                                 <Trash2 size={13} />
@@ -2049,7 +2067,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
-                  <span>{duplicatingFormId === formActionMenu.form.formId ? 'Đang nhân bản...' : 'Nhân bản'}</span>
+                  <span>{duplicatingFormId === formActionMenu.form.formId ? 'Duplicating...' : 'Duplicate'}</span>
                 </button>
 
                 {onOpenReportBuilder && (
@@ -2080,7 +2098,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <SlidersHorizontal size={13} style={{ color: 'var(--text-secondary)' }} />
-                    <span>Báo cáo</span>
+                    <span>Report Template</span>
                   </button>
                 )}
 
@@ -2097,8 +2115,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       title: target.formTitle || target.formId,
                       version: target.version,
                       note: target.linkedProcesses.length > 0
-                        ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
-                        : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
+                        ? 'Process links, submitted records, and attached photos will be preserved; restoring this form reactivates it automatically.'
+                        : 'This form will be stored in Trash and can be restored anytime.'
                     });
                   }}
                   style={{
@@ -2120,7 +2138,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >
                   <Trash2 size={13} />
-                  <span>Xóa</span>
+                  <span>Move to Trash</span>
                 </button>
               </div>,
               document.body
@@ -2150,10 +2168,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   border: '1px solid var(--neutral-border)'
                 }}>
                   <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Chọn quy trình liên kết
+                    Select Linked Process
                   </h4>
                   <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Biểu mẫu này được liên kết với nhiều quy trình đang hoạt động. Vui lòng chọn quy trình bạn muốn thực hiện thao tác:
+                    This form is linked to multiple active processes. Select a process to continue:
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
                     {processSelectDialog.form.linkedProcesses.map((lp: any) => (
@@ -2208,7 +2226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         fontSize: '0.85rem'
                       }}
                     >
-                      Hủy bỏ
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -2294,11 +2312,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
       <ConfirmModal
         isOpen={Boolean(deleteTarget)}
-        title="Chuyển vào Thùng rác?"
+        title="Move to Trash?"
         message={
           deleteTarget ? (
             <div>
-              Bạn có chắc chắn muốn chuyển <strong>{deleteTarget.title}</strong> (<code>{deleteTarget.id}</code>) vào Thùng rác?
+              Are you sure you want to move <strong>{deleteTarget.title}</strong> (<code>{deleteTarget.id}</code>) to Trash?
               {deleteTarget.note && (
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                   {deleteTarget.note}
@@ -2307,8 +2325,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           ) : ''
         }
-        confirmText="Chuyển vào thùng rác"
-        cancelText="Hủy"
+        confirmText="Move to Trash"
+        cancelText="Cancel"
         variant="warning"
         loading={deletingTarget}
         onConfirm={handleConfirmSoftDelete}
@@ -2354,7 +2372,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }}
             >
               <RotateCcw size={12} />
-              <span>Hoàn tác</span>
+              <span>Undo</span>
             </button>
           )}
         </div>

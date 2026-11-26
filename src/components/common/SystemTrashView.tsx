@@ -11,10 +11,10 @@ interface SystemTrashViewProps {
 }
 
 const ENTITY_META: Record<TrashEntityType, { label: string; bg: string; color: string; border: string; Icon: React.FC<{ size?: number }> }> = {
-  process: { label: 'Quy trình', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', Icon: GitBranch },
-  form: { label: 'Biểu mẫu', bg: '#f0fdfa', color: '#0f766e', border: '#99f6e4', Icon: FileText },
-  submission: { label: 'Hồ sơ', bg: '#fef3c7', color: '#92400e', border: '#fde68a', Icon: ClipboardList },
-  report: { label: 'Báo cáo', bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff', Icon: BarChart2 }
+  process: { label: 'Process', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', Icon: GitBranch },
+  form: { label: 'Form', bg: '#f0fdfa', color: '#0f766e', border: '#99f6e4', Icon: FileText },
+  submission: { label: 'Submission', bg: '#fef3c7', color: '#92400e', border: '#fde68a', Icon: ClipboardList },
+  report: { label: 'Report', bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff', Icon: BarChart2 }
 };
 
 /**
@@ -40,7 +40,7 @@ export default function SystemTrashView({
     try {
       setLoading(true);
       const res = await fetch('/api/trash');
-      if (!res.ok) throw new Error('Không thể tải danh sách Thùng rác');
+      if (!res.ok) throw new Error('Unable to load Trash');
       const data = await res.json();
       setItems(Array.isArray(data.items) ? data.items : []);
       if (data.counts) {
@@ -48,7 +48,7 @@ export default function SystemTrashView({
       }
     } catch (err) {
       console.error(err);
-      onToast({ message: err instanceof Error ? err.message : 'Lỗi tải Thùng rác', type: 'error' });
+      onToast({ message: err instanceof Error ? err.message : 'Failed to load Trash', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -90,14 +90,14 @@ export default function SystemTrashView({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Khôi phục thất bại');
+        throw new Error(errData.error || 'Failed to restore item');
       }
-      onToast({ message: `Đã khôi phục "${item.title}" thành công!`, type: 'success' });
+      onToast({ message: `Restored "${item.title}".`, type: 'success' });
       await fetchTrash();
       onDataChanged();
     } catch (err) {
       console.error(err);
-      onToast({ message: err instanceof Error ? err.message : 'Lỗi khi khôi phục mục đã chọn', type: 'error' });
+      onToast({ message: err instanceof Error ? err.message : 'Error restoring selected item', type: 'error' });
     } finally {
       setRestoringKey(null);
     }
@@ -118,16 +118,16 @@ export default function SystemTrashView({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Không thể xóa vĩnh viễn');
+        throw new Error(errData.error || 'Unable to delete permanently');
       }
       const deletedTitle = permanentTarget.title;
       setPermanentTarget(null);
-      onToast({ message: `Đã xóa vĩnh viễn "${deletedTitle}".`, type: 'success' });
+      onToast({ message: `Permanently deleted "${deletedTitle}".`, type: 'success' });
       await fetchTrash();
       onDataChanged();
     } catch (err) {
       console.error(err);
-      onToast({ message: err instanceof Error ? err.message : 'Lỗi khi xóa vĩnh viễn', type: 'error' });
+      onToast({ message: err instanceof Error ? err.message : 'Error permanently deleting item', type: 'error' });
     } finally {
       setProcessingDanger(false);
     }
@@ -142,36 +142,36 @@ export default function SystemTrashView({
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Không thể dọn sạch thùng rác');
+        throw new Error(errData.error || 'Unable to empty Trash');
       }
       setConfirmEmptyOpen(false);
-      onToast({ message: 'Đã dọn sạch Thùng rác!', type: 'success' });
+      onToast({ message: 'Trash emptied.', type: 'success' });
       await fetchTrash();
       onDataChanged();
     } catch (err) {
       console.error(err);
-      onToast({ message: err instanceof Error ? err.message : 'Lỗi khi dọn sạch Thùng rác', type: 'error' });
+      onToast({ message: err instanceof Error ? err.message : 'Error emptying Trash', type: 'error' });
     } finally {
       setProcessingDanger(false);
     }
   };
 
   const filterTabs: Array<{ key: 'all' | TrashEntityType; label: string; count: number; adminOnly?: boolean }> = [
-    { key: 'all', label: 'Tất cả', count: isAdmin ? counts.total : counts.total - counts.submission },
-    { key: 'process', label: 'Quy trình', count: counts.process },
-    { key: 'form', label: 'Biểu mẫu', count: counts.form },
-    { key: 'submission', label: 'Hồ sơ', count: counts.submission, adminOnly: true },
-    { key: 'report', label: 'Báo cáo', count: counts.report }
+    { key: 'all', label: 'All', count: isAdmin ? counts.total : counts.total - counts.submission },
+    { key: 'process', label: 'Processes', count: counts.process },
+    { key: 'form', label: 'Forms', count: counts.form },
+    { key: 'submission', label: 'Submissions', count: counts.submission, adminOnly: true },
+    { key: 'report', label: 'Reports', count: counts.report }
   ];
 
   const getPermanentWarning = (item: TrashItem) => {
     if (item.entityType === 'process') {
-      return 'Lưu ý: Xóa vĩnh viễn Quy trình có thể xóa dây chuyền các hồ sơ điền đang liên kết trực tiếp trong database.';
+      return 'Note: Permanently deleting a Process may cascade-delete directly linked submission records in the database.';
     }
     if (item.entityType === 'submission') {
-      return 'Lưu ý: Toàn bộ ảnh bằng chứng đính kèm trên R2 cũng sẽ bị xóa vĩnh viễn.';
+      return 'Note: All attached R2 photo evidence will also be permanently deleted.';
     }
-    return 'Hành động này sẽ xóa vĩnh viễn dữ liệu và không thể hoàn tác.';
+    return 'This action permanently deletes the data and cannot be undone.';
   };
 
   return (
@@ -232,7 +232,7 @@ export default function SystemTrashView({
             }}
           >
             <Trash2 size={13} />
-            <span>Dọn sạch thùng rác</span>
+            <span>Empty Trash</span>
           </button>
         )}
       </div>
@@ -240,16 +240,16 @@ export default function SystemTrashView({
       {/* Main Trash Table */}
       {loading ? (
         <div className="paper-card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-          Đang tải Thùng rác...
+          Loading trash...
         </div>
       ) : visibleItems.length === 0 ? (
         <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <Trash2 size={44} style={{ color: 'var(--text-muted)', marginBottom: '0.85rem', opacity: 0.45 }} />
           <h3 style={{ margin: '0 0 0.4rem 0', fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-            Thùng rác trống
+            Trash is empty
           </h3>
           <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {searchQuery ? 'Không tìm thấy mục nào khớp với từ khóa tìm kiếm.' : 'Chưa có mục nào bị xóa.'}
+            {searchQuery ? 'No items match your search.' : 'Deleted items will appear here for safe recovery.'}
           </p>
         </div>
       ) : (
@@ -258,11 +258,11 @@ export default function SystemTrashView({
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Loại</th>
-                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Mã (ID)</th>
-                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '36%' }}>Tên & Chi tiết</th>
-                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Đã xóa</th>
-                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '18%' }}>Thao tác</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Type</th>
+                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>ID</th>
+                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '36%' }}>Title & Details</th>
+                  <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Deleted</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: 600, width: '18%' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,7 +272,7 @@ export default function SystemTrashView({
                   const itemKey = getItemKey(item);
                   const isRestoring = restoringKey === itemKey;
                   const deletedTime = item.deletedAt
-                    ? new Date(item.deletedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+                    ? new Date(item.deletedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })
                     : '—';
 
                   return (
@@ -282,7 +282,7 @@ export default function SystemTrashView({
                       onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                      <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle' }}>
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -327,11 +327,11 @@ export default function SystemTrashView({
                       <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         <div>{deletedTime}</div>
                         {item.deletedBy && (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>bởi {item.deletedBy}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>by {item.deletedBy}</div>
                         )}
                       </td>
-                      <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <td style={{ padding: '0.65rem 1rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
                           <button
                             type="button"
                             disabled={isRestoring}
@@ -352,14 +352,14 @@ export default function SystemTrashView({
                             }}
                           >
                             <RotateCcw size={12} />
-                            <span>{isRestoring ? 'Đang khôi phục...' : 'Khôi phục'}</span>
+                            <span>{isRestoring ? 'Restoring...' : 'Restore'}</span>
                           </button>
 
                           {isAdmin && (
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              title="Xóa vĩnh viễn"
+                              title="Delete permanently"
                               onClick={() => setPermanentTarget(item)}
                               style={{
                                 padding: 0,
@@ -390,19 +390,19 @@ export default function SystemTrashView({
       {/* Confirm Permanent Delete (Single Item - Admin Only) */}
       <ConfirmModal
         isOpen={Boolean(permanentTarget)}
-        title="Xóa vĩnh viễn khỏi hệ thống?"
+        title="Delete Permanently?"
         message={
           permanentTarget ? (
             <div>
-              Bạn có chắc chắn muốn xóa vĩnh viễn <strong>{permanentTarget.title}</strong> (<code>{permanentTarget.id}</code>)?
+              Are you sure you want to permanently delete <strong>{permanentTarget.title}</strong> (<code>{permanentTarget.id}</code>)?
               <p style={{ margin: '0.5rem 0 0', color: 'var(--danger)', fontWeight: 500, fontSize: '0.8rem' }}>
                 {getPermanentWarning(permanentTarget)}
               </p>
             </div>
           ) : ''
         }
-        confirmText="Xóa vĩnh viễn"
-        cancelText="Hủy"
+        confirmText="Delete Permanently"
+        cancelText="Cancel"
         variant="danger"
         loading={processingDanger}
         onConfirm={handlePermanentDelete}
@@ -412,17 +412,17 @@ export default function SystemTrashView({
       {/* Confirm Empty Trash (Admin Only) */}
       <ConfirmModal
         isOpen={confirmEmptyOpen}
-        title="Dọn sạch Thùng rác?"
+        title="Empty Trash?"
         message={
           <div>
-            Tất cả <strong>{visibleItems.length}</strong> mục đang hiển thị trong Thùng rác sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu (bao gồm ảnh bằng chứng R2 của hồ sơ nếu có).
+            All <strong>{visibleItems.length}</strong> visible items in Trash will be permanently deleted from the database (including any attached R2 photo evidence).
             <p style={{ margin: '0.5rem 0 0', color: 'var(--danger)', fontWeight: 500, fontSize: '0.8rem' }}>
-              * Hành động này không thể hoàn tác.
+              * This action cannot be undone.
             </p>
           </div>
         }
-        confirmText="Dọn sạch ngay"
-        cancelText="Hủy"
+        confirmText="Empty Trash"
+        cancelText="Cancel"
         variant="danger"
         loading={processingDanger}
         onConfirm={handleEmptyTrash}

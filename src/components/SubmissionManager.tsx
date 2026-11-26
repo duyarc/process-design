@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import type { Submission, Process } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, 
   CheckCircle, 
   AlertTriangle, 
-  Clock, 
   Printer, 
   Eye,
   CheckCircle2,
@@ -13,11 +13,12 @@ import {
   UserCheck,
   Trash2,
   FileText,
+  FilePlus,
+  BarChart2,
   Copy,
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
-  PenTool,
   Share2,
   RotateCcw
 } from 'lucide-react';
@@ -61,7 +62,8 @@ export default function SubmissionManager({
   onOpenFormFiller,
   onTrashChanged
 }: SubmissionManagerProps) {
-  const { currentUser } = useAuth();
+  const { currentUser, hasPermission } = useAuth();
+  const canVerify = hasPermission('verify_records') || currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor';
   
   // Data States — SWR: init from cache for instant render, revalidate in background
   const [submissions, setSubmissions] = useState<Submission[]>(() => {
@@ -89,10 +91,7 @@ export default function SubmissionManager({
     catch { return true; }
   });
   
-  // Selected Detail View
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  
-  // Read-only Full Form View State
+  // Unified Full Form View & Verification State
   const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
 
   // Print Mode State
@@ -107,16 +106,63 @@ export default function SubmissionManager({
   // Group Accordion Collapse State (formKey -> boolean)
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  // Active Context Menu for row actions
-  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+  // Portal Overflow Menu for row actions
+  const [rowActionMenu, setRowActionMenu] = useState<{
+    sub: Submission;
+    top: number;
+    right: number;
+    openUpward: boolean;
+  } | null>(null);
 
-  // Auto-close action menu when clicking outside
   useEffect(() => {
-    if (!activeActionMenuId) return;
-    const handleOutsideClick = () => setActiveActionMenuId(null);
-    window.addEventListener('click', handleOutsideClick);
-    return () => window.removeEventListener('click', handleOutsideClick);
-  }, [activeActionMenuId]);
+    if (!rowActionMenu) return;
+    const dismiss = () => setRowActionMenu(null);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismiss();
+    };
+    window.addEventListener('click', dismiss);
+    window.addEventListener('keydown', handleKey);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => {
+      window.removeEventListener('click', dismiss);
+      window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [rowActionMenu]);
+
+  const openRowActionMenu = (e: React.MouseEvent<HTMLButtonElement>, sub: Submission) => {
+    e.stopPropagation();
+    if (rowActionMenu?.sub.id === sub.id) {
+      setRowActionMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const openUpward = window.innerHeight - rect.bottom < 160;
+    setRowActionMenu({
+      sub,
+      top: openUpward ? rect.top - 4 : rect.bottom + 4,
+      right: Math.max(8, window.innerWidth - rect.right),
+      openUpward
+    });
+  };
+
+  const ghostActionBtnStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    padding: 0,
+    margin: 0,
+    border: 'none',
+    borderRadius: '6px',
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    transition: 'background 0.15s ease, color 0.15s ease'
+  };
 
   // Notify parent container (e.g. Dashboard) when full-screen form view is active
   useEffect(() => {
@@ -157,10 +203,10 @@ export default function SubmissionManager({
     const shareUrl = `${window.location.origin}/f/${slug}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        setToast({ message: 'Đã sao chép liên kết biểu mẫu vào clipboard!', type: 'success' });
+        setToast({ message: 'Form share link copied to clipboard.', type: 'success' });
       })
       .catch(() => {
-        setToast({ message: 'Không thể sao chép liên kết biểu mẫu.', type: 'error' });
+        setToast({ message: 'Unable to copy form share link.', type: 'error' });
       });
   };
 
@@ -205,7 +251,7 @@ export default function SubmissionManager({
       console.error(err);
       setFetchError(err?.message || 'Error fetching submission logs');
       if (!isBackground) {
-        setToast({ message: 'Không thể tải nhật ký phiếu. Đang thử kết nối lại...', type: 'error' });
+        setToast({ message: 'Unable to load submissions log. Retrying...', type: 'error' });
       }
     } finally {
       setLoading(false);
@@ -234,25 +280,17 @@ export default function SubmissionManager({
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSelectedSubmission(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Open full WYSIWYG form view & verification directly
+  const handleOpenSubmission = async (sub: Submission) => {
+    const full = sub.formData.length > 0 ? sub : await fetchFullSubmission(sub);
+    setViewingSubmission(full);
+  };
 
-  // Lazy-fetch formData when detail panel is opened (light list has formData=[])
-  useEffect(() => {
-    if (!selectedSubmission || selectedSubmission.formData.length > 0) return;
-    let cancelled = false;
-    fetchFullSubmission(selectedSubmission).then(full => {
-      if (!cancelled) setSelectedSubmission(full);
-    });
-    return () => { cancelled = true; };
-  }, [selectedSubmission?.id]);
+  // Duplicate record with full formData loaded
+  const handleDuplicateSubmission = async (sub: Submission) => {
+    const full = sub.formData.length > 0 ? sub : await fetchFullSubmission(sub);
+    setCopyingSubmission(full);
+  };
 
   // Date format helper: DD/MM/YYYY only (no time)
   const formatDateOnly = (dateString?: string) => {
@@ -305,11 +343,20 @@ export default function SubmissionManager({
     return null;
   };
 
-  // Map process ID to display title
-  const getProcessTitle = (procId: string, formId?: string) => {
-    const p = getLinkedProcess(procId, formId);
-    return p ? p.title : 'Biểu mẫu tự do';
-  };
+  // Form ID -> Display Title lookup from cached forms
+  const formMetaMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of forms || []) {
+      const title = f.form_title || f.formTitle || f.form_name || '';
+      if (!title) continue;
+      const keys = [f.form_id, f.formId, f.formName].filter(Boolean);
+      for (const k of keys) {
+        const keyLower = String(k).toLowerCase();
+        if (!map.has(keyLower)) map.set(keyLower, title);
+      }
+    }
+    return map;
+  }, [forms]);
 
   // Toggle group accordion
   const toggleGroup = (formKey: string) => {
@@ -340,7 +387,7 @@ export default function SubmissionManager({
     return submissions.filter(sub => {
       const linkedProc = getLinkedProcess(sub.processId, sub.formId);
       const procId = linkedProc ? linkedProc.id : 'unlinked';
-      const procTitle = linkedProc ? linkedProc.title : 'Biểu mẫu tự do';
+      const procTitle = linkedProc ? linkedProc.title : 'Standalone Form';
 
       // 1. Process filter
       if (processFilter !== 'ALL') {
@@ -392,13 +439,14 @@ export default function SubmissionManager({
       let group = map.get(key);
       if (!group) {
         const linkedProc = getLinkedProcess(sub.processId, sub.formId);
+        const resolvedTitle = formMetaMap.get(key.toLowerCase()) || sub.formId || 'Standalone Form';
         group = {
           formKey: key,
           formId: sub.formId || 'Unknown',
-          formTitle: sub.formId || 'Biểu mẫu tự do',
+          formTitle: resolvedTitle,
           formVersion: sub.formVersion || '1.0',
           processId: linkedProc ? linkedProc.id : (sub.processId || 'unlinked'),
-          processTitle: linkedProc ? linkedProc.title : 'Biểu mẫu tự do',
+          processTitle: linkedProc ? linkedProc.title : 'Standalone Form',
           submissions: [],
           pendingCount: 0,
           verifiedCount: 0
@@ -430,10 +478,10 @@ export default function SubmissionManager({
           map.set(key, {
             formKey: key,
             formId: f.formId || f.formName || 'Unknown',
-            formTitle: f.formTitle || f.formName || 'Biểu mẫu',
+            formTitle: f.formTitle || f.form_title || f.formName || 'Form',
             formVersion: f.version || '0.1',
             processId: linkedProc ? linkedProc.id : 'unlinked',
-            processTitle: linkedProc ? linkedProc.title : 'Biểu mẫu tự do',
+            processTitle: linkedProc ? linkedProc.title : 'Standalone Form',
             submissions: [],
             pendingCount: 0,
             verifiedCount: 0
@@ -448,12 +496,12 @@ export default function SubmissionManager({
       const bTime = b.submissions[0] ? new Date(b.submissions[0].submittedAt).getTime() : 0;
       return bTime - aTime;
     });
-  }, [filteredSubmissions, processes, forms, searchTerm, initialFormFilter]);
+  }, [filteredSubmissions, processes, forms, formMetaMap, searchTerm, initialFormFilter]);
 
   // 3. Supervisor sign-off handler
   const handleSignOffSubmit = async (subId: string) => {
     if (!supervisorName.trim()) {
-      setToast({ message: 'Vui lòng nhập họ tên người ký xác nhận.', type: 'error' });
+      setToast({ message: 'Please enter supervisor signature name.', type: 'error' });
       return;
     }
 
@@ -471,18 +519,22 @@ export default function SubmissionManager({
       if (!res.ok) throw new Error('Failed to verify record');
       const { signoffData } = await res.json();
       
-      setToast({ message: 'Đã ký xác nhận bản ghi thành công!', type: 'success' });
+      setToast({ message: 'Record verified and signed off.', type: 'success' });
       
-      // Update local state
-      setSubmissions(prev => prev.map(sub => sub.id === subId ? { ...sub, supervisorSignoff: signoffData } : sub));
-      if (selectedSubmission && selectedSubmission.id === subId) {
-        setSelectedSubmission(prev => prev ? { ...prev, supervisorSignoff: signoffData } : null);
+      // Update local state & active FormFiller preview
+      setSubmissions(prev => {
+        const next = prev.map(sub => sub.id === subId ? { ...sub, supervisorSignoff: signoffData } : sub);
+        try { sessionStorage.setItem('swr_submissions', JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      if (viewingSubmission && viewingSubmission.id === subId) {
+        setViewingSubmission(prev => prev ? { ...prev, supervisorSignoff: signoffData } : null);
       }
       
       setVerificationNotes('');
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Lỗi khi ký xác nhận bản ghi.', type: 'error' });
+      setToast({ message: 'Error verifying record.', type: 'error' });
     } finally {
       setSigningOff(false);
     }
@@ -501,10 +553,6 @@ export default function SubmissionManager({
       });
       if (!res.ok) throw new Error('Failed to delete submission');
 
-      // Clear selected submission if it is the deleted one
-      if (selectedSubmission && selectedSubmission.id === targetId) {
-        setSelectedSubmission(null);
-      }
       setSubmissions(prev => {
         const next = prev.filter(s => s.id !== targetId);
         try { sessionStorage.setItem('swr_submissions', JSON.stringify(next)); } catch (_) {}
@@ -512,11 +560,11 @@ export default function SubmissionManager({
       });
       setSubmissionToDelete(null);
       onTrashChanged?.();
-      setToast({ message: `Đã chuyển bản ghi ${targetId} vào Thùng rác.`, type: 'success', undoId: targetId });
+      setToast({ message: `Moved record ${targetId} to Trash.`, type: 'success', undoId: targetId });
       await fetchData(true);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Lỗi khi chuyển bản ghi vào Thùng rác.', type: 'error' });
+      setToast({ message: 'Error moving record to Trash.', type: 'error' });
     } finally {
       setDeleting(false);
     }
@@ -531,33 +579,126 @@ export default function SubmissionManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entityType: 'submission', id: undoId })
       });
-      if (!res.ok) throw new Error('Không thể hoàn tác');
-      setToast({ message: 'Đã khôi phục bản ghi thành công!', type: 'success' });
+      if (!res.ok) throw new Error('Unable to undo delete');
+      setToast({ message: 'Record restored successfully.', type: 'success' });
       onTrashChanged?.();
       await fetchData(true);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Lỗi khi hoàn tác bản ghi.', type: 'error' });
+      setToast({ message: 'Error restoring record.', type: 'error' });
     }
   };
 
-  // Read-Only Full Online Form Viewer render bypass
+  // Unified Full WYSIWYG Form Viewer & Supervisor QMS Verification
   if (viewingSubmission) {
     return (
-      <FormFiller
-        processId={viewingSubmission.processId}
-        formName={viewingSubmission.formId}
-        initialSubmission={viewingSubmission}
-        editSubmissionId={viewingSubmission.id}
-        editToken={viewingSubmission.accessToken || (viewingSubmission as any).access_token}
-        canEditSubmission={!viewingSubmission.supervisorSignoff}
-        readOnly={true}
-        onOpenReportBuilder={onOpenReportBuilder}
-        onBack={() => {
-          setViewingSubmission(null);
-          fetchData();
-        }}
-      />
+      <>
+        <FormFiller
+          processId={viewingSubmission.processId}
+          formName={viewingSubmission.formId}
+          initialSubmission={viewingSubmission}
+          editSubmissionId={viewingSubmission.id}
+          editToken={viewingSubmission.accessToken || (viewingSubmission as any).access_token}
+          canEditSubmission={!viewingSubmission.supervisorSignoff}
+          readOnly={true}
+          onOpenReportBuilder={onOpenReportBuilder}
+          onBack={() => {
+            setViewingSubmission(null);
+            fetchData(true);
+          }}
+        />
+
+        {(viewingSubmission.supervisorSignoff || canVerify) && (
+          <div
+            className="paper-card no-print"
+            style={{
+              maxWidth: '820px',
+              margin: '1rem auto 2rem auto',
+              padding: '1.1rem 1.5rem',
+              border: '1px solid var(--neutral-border)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--neutral-border)' }}>
+              <h4 style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <UserCheck size={14} style={{ color: 'var(--primary)' }} />
+                <span>Supervisor QMS Verification</span>
+              </h4>
+              {viewingSubmission.supervisorSignoff ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 600, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                  <CheckCircle2 size={12} />
+                  <span>Verified & Sealed</span>
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 600, color: '#b45309' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} />
+                  <span>Pending Review</span>
+                </span>
+              )}
+            </div>
+
+            {viewingSubmission.supervisorSignoff ? (
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'flex', flexWrap: 'wrap', gap: '0.75rem 1.5rem', alignItems: 'center' }}>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Verified by: </span>
+                  <strong>{viewingSubmission.supervisorSignoff.signedBy}</strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)' }}>Date: </span>
+                  <span>{new Date(viewingSubmission.supervisorSignoff.signedAt).toLocaleString('en-GB')}</span>
+                </div>
+                {viewingSubmission.supervisorSignoff.notes && (
+                  <div style={{ width: '100%', background: '#f8fafc', padding: '0.45rem 0.75rem', borderRadius: '6px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <strong>Notes:</strong> {viewingSubmission.supervisorSignoff.notes}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 1fr) minmax(220px, 1.5fr) auto', gap: '0.65rem', alignItems: 'end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Supervisor Signature Name *</label>
+                  <input
+                    type="text"
+                    value={supervisorName}
+                    onChange={(e) => setSupervisorName(e.target.value)}
+                    placeholder="Enter supervisor name"
+                    style={{ height: '34px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Review Notes (optional)</label>
+                  <input
+                    type="text"
+                    value={verificationNotes}
+                    onChange={(e) => setVerificationNotes(e.target.value)}
+                    placeholder="Review observations..."
+                    style={{ height: '34px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={signingOff}
+                  onClick={() => handleSignOffSubmit(viewingSubmission.id)}
+                  className="btn btn-primary btn-sm"
+                  style={{ height: '34px', padding: '0 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', margin: 0, whiteSpace: 'nowrap' }}
+                >
+                  <CheckCircle size={14} />
+                  <span>{signingOff ? 'Signing off...' : 'Verify & Sign Off'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {toast && (
+          <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1.1rem', background: toast.type === 'success' ? '#065f46' : '#991b1b', color: '#ffffff', borderRadius: '8px', boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)', fontSize: '0.85rem', fontWeight: 500 }}>
+            {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+            <span>{toast.message}</span>
+            <button type="button" onClick={() => setToast(null)} style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', marginLeft: '0.5rem', padding: 0, display: 'flex', alignItems: 'center' }}>
+              <XCircle size={16} />
+            </button>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -678,7 +819,7 @@ export default function SubmissionManager({
                     onChange={(e) => setSignoffFilter(e.target.value as any)}
                     style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
                   >
-                    <option value="ALL">All Status</option>
+                    <option value="ALL">All Statuses</option>
                     <option value="PENDING">Pending Review</option>
                     <option value="VERIFIED">Verified</option>
                   </select>
@@ -731,7 +872,7 @@ export default function SubmissionManager({
                 fontSize: '0.82rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
-                  <span>Đang lọc theo biểu mẫu:</span>
+                  <span>Filtered by form:</span>
                   <strong style={{ color: 'var(--primary)' }}>{initialFormFilter || searchTerm}</strong>
                 </div>
                 {onBack && (
@@ -752,7 +893,7 @@ export default function SubmissionManager({
                     }}
                   >
                     <XCircle size={13} />
-                    <span>Xem tất cả biểu mẫu</span>
+                    <span>Show all forms</span>
                   </button>
                 )}
               </div>
@@ -760,8 +901,6 @@ export default function SubmissionManager({
 
             {formGroups.map((group) => {
               const isCollapsed = Boolean(collapsedGroups[group.formKey]);
-
-              const isGroupActive = Boolean(activeActionMenuId && group.submissions.some(s => s.id === activeActionMenuId));
 
               return (
                 <div 
@@ -773,7 +912,7 @@ export default function SubmissionManager({
                     borderRadius: '8px',
                     border: '1px solid var(--neutral-border)',
                     position: 'relative',
-                    zIndex: isGroupActive ? 30 : 1
+                    zIndex: 1
                   }}
                 >
                   {/* Group Accordion Header */}
@@ -802,11 +941,16 @@ export default function SubmissionManager({
                         {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
                       </div>
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         <FileText size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
                         <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                           {group.formTitle}
                         </span>
+                        {group.formTitle.toLowerCase() !== group.formId.toLowerCase() && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 600 }}>
+                            {group.formId}
+                          </span>
+                        )}
                         {group.formVersion && (
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: '#e2e8f0', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
                             {formatVersion(group.formVersion)}
@@ -816,22 +960,33 @@ export default function SubmissionManager({
 
                       <span style={{ color: '#cbd5e1' }}>•</span>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        <span>Process:</span>
-                        <span style={{ 
-                          fontWeight: 600, 
-                          color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--primary)',
-                          background: group.processId === 'unlinked' ? '#f1f5f9' : '#f0fdf4',
-                          padding: '0.12rem 0.45rem',
-                          borderRadius: '4px',
-                          border: `1px solid ${group.processId === 'unlinked' ? '#e2e8f0' : '#bbf7d0'}`
-                        }}>
-                          {group.processTitle}
+                      <span style={{ 
+                        fontSize: '0.76rem',
+                        fontWeight: 600, 
+                        color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--text-secondary)',
+                        background: '#f1f5f9',
+                        padding: '0.12rem 0.45rem',
+                        borderRadius: '4px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {group.processTitle}
+                      </span>
+
+                      <span style={{ color: '#cbd5e1' }}>•</span>
+
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.76rem' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          {group.submissions.length} {group.submissions.length === 1 ? 'record' : 'records'}
                         </span>
+                        {group.pendingCount > 0 && (
+                          <span style={{ color: '#b45309', fontWeight: 600 }}>
+                            • {group.pendingCount} pending
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }} onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -845,9 +1000,10 @@ export default function SubmissionManager({
                           background: '#ffffff',
                           fontWeight: 600,
                           borderColor: 'var(--neutral-border)',
-                          color: 'var(--text-secondary)'
+                          color: 'var(--text-secondary)',
+                          margin: 0
                         }}
-                        title="Sao chép link gửi cho người điền (Share Link)"
+                        title="Copy shareable form link"
                       >
                         <Share2 size={13} />
                         <span>Share Link</span>
@@ -862,16 +1018,17 @@ export default function SubmissionManager({
                           alignItems: 'center',
                           gap: '0.3rem',
                           fontSize: '0.78rem',
-                          padding: '0.3rem 0.65rem',
-                          background: '#ffffff',
+                          padding: '0.3rem 0.7rem',
+                          background: '#f0fdfa',
                           fontWeight: 600,
-                          borderColor: '#bae6fd',
-                          color: '#0284c7'
+                          borderColor: 'rgba(16, 163, 163, 0.3)',
+                          color: 'var(--primary)',
+                          margin: 0
                         }}
-                        title="Fill new submission for this form"
+                        title="Fill a new record for this form"
                       >
-                        <PenTool size={13} />
-                        <span>+ Fill Form</span>
+                        <FilePlus size={13} />
+                        <span>Fill Form</span>
                       </button>
                     </div>
                   </div>
@@ -882,10 +1039,10 @@ export default function SubmissionManager({
                       <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <FileText size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4, display: 'block' }} />
                         <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          Chưa có bản ghi nộp nào cho biểu mẫu này.
+                          No submissions yet for this form.
                         </p>
                         <p style={{ margin: 0, fontSize: '0.8rem' }}>
-                          Bấm "+ Fill Form" ở góc trên bên phải để bắt đầu ghi nhận dữ liệu.
+                          Click "Fill Form" above to record a new submission.
                         </p>
                       </div>
                     ) : (
@@ -893,29 +1050,27 @@ export default function SubmissionManager({
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Record ID</th>
-                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Date</th>
-                            <th style={{ width: '26%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Operator</th>
-                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600 }}>Status</th>
-                            <th style={{ width: '20%', padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>
+                            <th style={{ width: '18%', padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600 }}>Record ID</th>
+                            <th style={{ width: '16%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Date</th>
+                            <th style={{ width: '30%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Operator</th>
+                            <th style={{ width: '20%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Status</th>
+                            <th style={{ width: '16%', padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600 }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {group.submissions.map((sub) => {
-                            const isSelected = selectedSubmission?.id === sub.id;
-
                             return (
                               <tr 
                                 key={sub.id} 
-                                style={{ 
+                                style={{
                                   borderBottom: '1px solid var(--neutral-border)',
-                                  background: isSelected ? '#eff6ff' : 'transparent',
+                                  background: 'transparent',
                                   transition: 'background 0.15s',
                                   cursor: 'pointer'
                                 }}
-                                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
-                                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                                onClick={() => setSelectedSubmission(sub)}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                onClick={() => handleOpenSubmission(sub)}
                               >
                                 {/* Cột 1: Mã phiếu */}
                                 <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle' }}>
@@ -945,20 +1100,20 @@ export default function SubmissionManager({
                                   </span>
                                 </td>
 
-                                {/* Cột 4: Trạng thái */}
-                                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                                {/* Col 4: Status */}
+                                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
                                   {sub.supervisorSignoff ? (
                                     <span style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: '0.25rem',
-                                      padding: '0.2rem 0.55rem',
+                                      padding: '0.18rem 0.5rem',
                                       borderRadius: '12px',
-                                      fontSize: '0.75rem',
+                                      fontSize: '0.74rem',
                                       fontWeight: 600,
-                                      background: '#ecfdf5',
-                                      color: '#059669',
-                                      border: '1px solid #a7f3d0'
+                                      background: '#f0fdf4',
+                                      color: '#15803d',
+                                      border: '1px solid #bbf7d0'
                                     }}>
                                       <CheckCircle2 size={12} />
                                       <span>Verified</span>
@@ -967,186 +1122,62 @@ export default function SubmissionManager({
                                     <span style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '0.25rem',
-                                      padding: '0.2rem 0.55rem',
-                                      borderRadius: '12px',
-                                      fontSize: '0.75rem',
+                                      gap: '0.35rem',
+                                      fontSize: '0.78rem',
                                       fontWeight: 600,
-                                      background: '#fffbeb',
-                                      color: '#d97706',
-                                      border: '1px solid #fde68a'
+                                      color: '#b45309'
                                     }}>
-                                      <Clock size={12} />
+                                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
                                       <span>Pending Review</span>
                                     </span>
                                   )}
                                 </td>
 
-                                {/* Cột 5: Thao tác */}
-                                <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-                                  <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
+                                {/* Col 5: Actions (Ghost Cluster + Portal Menu) */}
+                                <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                     <button
                                       type="button"
-                                      className="btn btn-secondary btn-sm"
-                                      title={sub.supervisorSignoff ? "Xem chi tiết phiếu" : "Xem chi tiết & Ký duyệt"}
-                                      onClick={() => setSelectedSubmission(sub)}
-                                      style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                      title={sub.supervisorSignoff ? 'View record' : 'View & verify record'}
+                                      onClick={() => handleOpenSubmission(sub)}
+                                      style={ghostActionBtnStyle}
+                                      onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; e.currentTarget.style.color = 'var(--primary)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                     >
-                                      <Eye size={13} style={{ color: !sub.supervisorSignoff ? 'var(--primary)' : undefined }} />
+                                      <Eye size={14} style={{ color: !sub.supervisorSignoff ? 'var(--primary)' : undefined }} />
                                     </button>
 
                                     {onOpenReport && (
                                       <button
                                         type="button"
-                                        className="btn btn-secondary btn-sm"
-                                        title="Xem Báo cáo Đánh giá (Record Report)"
+                                        title="View evaluation report"
                                         onClick={() => onOpenReport(sub.id)}
-                                        style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                        style={ghostActionBtnStyle}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                       >
-                                        <FileText size={13} />
+                                        <BarChart2 size={14} />
                                       </button>
                                     )}
 
-                                    {/* Action Dropdown Menu */}
-                                    <div style={{ position: 'relative' }}>
-                                      <button
-                                        type="button"
-                                        className="btn btn-secondary btn-sm"
-                                        title="Thao tác khác"
-                                        onClick={() => setActiveActionMenuId(prev => prev === sub.id ? null : sub.id)}
-                                        style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
-                                      >
-                                        <MoreHorizontal size={14} />
-                                      </button>
-
-                                      {activeActionMenuId === sub.id && (
-                                        <div 
-                                          style={{
-                                            position: 'absolute',
-                                            right: 0,
-                                            top: '100%',
-                                            marginTop: '4px',
-                                            background: '#ffffff',
-                                            borderRadius: '6px',
-                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                                            border: '1px solid var(--neutral-border)',
-                                            zIndex: 100,
-                                            minWidth: '180px',
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            flexDirection: 'column'
-                                          }}
-                                        >
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setViewingSubmission(sub);
-                                              setActiveActionMenuId(null);
-                                            }}
-                                            style={{
-                                              padding: '0.5rem 0.75rem',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.5rem',
-                                              fontSize: '0.78rem',
-                                              border: 'none',
-                                              background: 'transparent',
-                                              cursor: 'pointer',
-                                              color: 'var(--text-primary)',
-                                              textAlign: 'left',
-                                              width: '100%'
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                          >
-                                            <Eye size={13} style={{ color: 'var(--primary)' }} />
-                                            <span>Xem toàn văn Web</span>
-                                          </button>
-
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setCopyingSubmission(sub);
-                                              setActiveActionMenuId(null);
-                                            }}
-                                            style={{
-                                              padding: '0.5rem 0.75rem',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.5rem',
-                                              fontSize: '0.78rem',
-                                              border: 'none',
-                                              background: 'transparent',
-                                              cursor: 'pointer',
-                                              color: 'var(--text-primary)',
-                                              textAlign: 'left',
-                                              width: '100%'
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                          >
-                                            <Copy size={13} />
-                                            <span>Sao chép tạo phiếu</span>
-                                          </button>
-
-                                          <button
-                                            type="button"
-                                            onClick={async () => {
-                                              setActiveActionMenuId(null);
-                                              const full = await fetchFullSubmission(sub);
-                                              setPrintSubmission(full);
-                                            }}
-                                            style={{
-                                              padding: '0.5rem 0.75rem',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.5rem',
-                                              fontSize: '0.78rem',
-                                              border: 'none',
-                                              background: 'transparent',
-                                              cursor: 'pointer',
-                                              color: 'var(--text-primary)',
-                                              textAlign: 'left',
-                                              width: '100%'
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                          >
-                                            <Printer size={13} />
-                                            <span>In biểu mẫu A4</span>
-                                          </button>
-
-                                          {currentUser?.role_id === 'admin' && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setSubmissionToDelete(sub);
-                                                setActiveActionMenuId(null);
-                                              }}
-                                              style={{
-                                                padding: '0.5rem 0.75rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem',
-                                                fontSize: '0.78rem',
-                                                border: 'none',
-                                                borderTop: '1px solid var(--neutral-border)',
-                                                background: 'transparent',
-                                                cursor: 'pointer',
-                                                color: '#ef4444',
-                                                textAlign: 'left',
-                                                width: '100%'
-                                              }}
-                                              onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
-                                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                            >
-                                              <Trash2 size={13} />
-                                              <span>Xóa bản ghi (Admin)</span>
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
+                                    <button
+                                      type="button"
+                                      title="More actions"
+                                      onClick={(e) => openRowActionMenu(e, sub)}
+                                      style={{
+                                        ...ghostActionBtnStyle,
+                                        background: rowActionMenu?.sub.id === sub.id ? '#f1f5f9' : 'transparent',
+                                        color: rowActionMenu?.sub.id === sub.id ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                      }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                      onMouseLeave={e => {
+                                        const isOpen = rowActionMenu?.sub.id === sub.id;
+                                        e.currentTarget.style.background = isOpen ? '#f1f5f9' : 'transparent';
+                                        e.currentTarget.style.color = isOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                      }}
+                                    >
+                                      <MoreHorizontal size={15} />
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -1164,293 +1195,143 @@ export default function SubmissionManager({
         )}
       </div>
 
-      {/* Slide-over Drawer Overlay */}
-      {selectedSubmission && (
-        <div 
+      {/* Portal Overflow Menu for Submission Row Actions */}
+      {rowActionMenu && ReactDOM.createPortal(
+        <div
+          onClick={e => e.stopPropagation()}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(3px)',
-            zIndex: 9999,
+            top: rowActionMenu.openUpward ? undefined : `${rowActionMenu.top}px`,
+            bottom: rowActionMenu.openUpward ? `${window.innerHeight - rowActionMenu.top}px` : undefined,
+            right: `${rowActionMenu.right}px`,
+            zIndex: 9998,
+            minWidth: '176px',
+            background: '#ffffff',
+            border: '1px solid var(--neutral-border)',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05)',
+            padding: '4px',
             display: 'flex',
-            justifyContent: 'flex-end',
-            transition: 'opacity 0.2s ease-in-out'
+            flexDirection: 'column',
+            gap: '2px'
           }}
-          onClick={() => setSelectedSubmission(null)}
         >
-          <style>{`
-            @keyframes slideIn {
-              from { transform: translateX(100%); }
-              to { transform: translateX(0); }
-            }
-          `}</style>
-          <div 
-            style={{
-              width: '100%',
-              maxWidth: '480px',
-              height: '100%',
-              background: '#ffffff',
-              boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '1.5rem',
-              overflowY: 'auto',
-              position: 'relative',
-              animation: 'slideIn 0.2s ease-out'
+          <button
+            type="button"
+            onClick={() => {
+              const target = rowActionMenu.sub;
+              setRowActionMenu(null);
+              handleDuplicateSubmission(target);
             }}
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              padding: '0.45rem 0.65rem',
+              border: 'none',
+              borderRadius: '6px',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            {/* Detail Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Snapshot Detail</span>
-                <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId, selectedSubmission.formId)}</h3>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  title="Mở toàn văn Form Online (Full Web View)"
-                  onClick={() => {
-                    setViewingSubmission(selectedSubmission);
-                    setSelectedSubmission(null);
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--primary)' }}
-                >
-                  <Eye size={13} />
-                  <span>Toàn văn</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  title="Sao chép thành phiếu mới (Copy Record)"
-                  onClick={() => {
-                    setCopyingSubmission(selectedSubmission);
-                    setSelectedSubmission(null);
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                >
-                  <Copy size={13} />
-                  <span>Sao chép</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  title="In biểu mẫu (Print)"
-                  onClick={async () => {
-                    if (selectedSubmission) {
-                      const full = selectedSubmission.formData.length > 0 ? selectedSubmission : await fetchFullSubmission(selectedSubmission);
-                      setPrintSubmission(full);
-                    }
-                  }}
-                  style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <Printer size={13} />
-                </button>
-                {currentUser?.role_id === 'admin' && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    title="Xóa bản ghi lỗi (Admin)"
-                    onClick={() => {
-                      setSubmissionToDelete(selectedSubmission);
-                      setSelectedSubmission(null);
-                    }}
-                    style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedSubmission(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none', padding: '0.2rem', marginLeft: '0.25rem' }}
-                >
-                  <XCircle size={18} />
-                </button>
-              </div>
-            </div>
+            <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
+            <span>Duplicate as New</span>
+          </button>
 
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem', marginTop: '1rem' }}>
-              <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Operator ID</div>
-                <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.operatorId}</strong>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Form ID/Version</div>
-                <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.formId} ({selectedSubmission.formVersion})</strong>
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={async () => {
+              const target = rowActionMenu.sub;
+              setRowActionMenu(null);
+              const full = await fetchFullSubmission(target);
+              setPrintSubmission(full);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              padding: '0.45rem 0.65rem',
+              border: 'none',
+              borderRadius: '6px',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              textAlign: 'left',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <Printer size={13} style={{ color: 'var(--text-secondary)' }} />
+            <span>Print A4</span>
+          </button>
 
-            {/* Checklist Snapshot list */}
-            <div style={{ marginTop: '1.25rem' }}>
-              <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
-                Recorded Checklist Values
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
-                {selectedSubmission.formData && selectedSubmission.formData.map((row, idx) => {
-                  const rowFailed = row.status === 'FAIL';
-                  return (
-                    <div 
-                      key={row.id || idx}
-                      style={{
-                        padding: '0.5rem 0.75rem',
-                        background: rowFailed ? '#fff5f5' : '#f8fafc',
-                        border: `1px solid ${rowFailed ? '#fca5a5' : 'var(--neutral-border)'}`,
-                        borderRadius: '6px',
-                        fontSize: '0.8rem'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '0.2rem' }}>
-                        <span style={{ color: 'var(--text-primary)' }}>{idx + 1}. {row.checkItem}</span>
-                        <span style={{ color: rowFailed ? '#ef4444' : '#10b981' }}>{row.status}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                        <span>Target: {row.targetRange}</span>
-                        <span>Value: <strong>{row.value}</strong></span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Photo Evidence attachments thumbnail */}
-            {selectedSubmission.mediaUrls && selectedSubmission.mediaUrls.length > 0 && (
-              <div style={{ marginTop: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
-                  Photo Attachments ({selectedSubmission.mediaUrls.length})
-                </h4>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {selectedSubmission.mediaUrls.map((key, index) => (
-                    <div 
-                      key={index} 
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        border: '1px solid var(--neutral-border)',
-                        borderRadius: '4px',
-                        overflow: 'hidden',
-                        background: '#f1f5f9',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onClick={async () => {
-                        const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(key)}`);
-                        if (res.ok) {
-                          const { downloadUrl } = await res.json();
-                          window.open(downloadUrl, '_blank');
-                        }
-                      }}
-                      title="Click to view image"
-                    >
-                      <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Photo {index + 1}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Supervisor sign-off loop */}
-            <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '1rem', marginTop: '1.5rem' }}>
-              <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <UserCheck size={14} style={{ color: 'var(--primary)' }} />
-                <span>Supervisor QMS Verification</span>
-              </h4>
-
-              {selectedSubmission.supervisorSignoff ? (
-                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: '#065f46' }}>
-                  <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckCircle2 size={15} />
-                    <span>Verified & Sealed</span>
-                  </div>
-                  <div style={{ marginTop: '0.25rem' }}>
-                    Verified by: <strong>{selectedSubmission.supervisorSignoff.signedBy}</strong>
-                  </div>
-                  <div>
-                    Date: {new Date(selectedSubmission.supervisorSignoff.signedAt).toLocaleString()}
-                  </div>
-                  {selectedSubmission.supervisorSignoff.notes && (
-                    <div style={{ marginTop: '0.5rem', fontStyle: 'italic', background: '#ffffff', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #d1fae5' }}>
-                      Notes: {selectedSubmission.supervisorSignoff.notes}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.5rem', borderRadius: '4px', display: 'flex', gap: '0.25rem' }}>
-                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                    <span>Pending daily verification review. Confirm values align with process control standards.</span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Supervisor Signature Name *</label>
-                    <input 
-                      type="text" 
-                      value={supervisorName}
-                      onChange={(e) => setSupervisorName(e.target.value)}
-                      placeholder="Enter supervisor signature name"
-                      style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Review Notes / Verification Comments</label>
-                    <textarea 
-                      value={verificationNotes}
-                      onChange={(e) => setVerificationNotes(e.target.value)}
-                      placeholder="Optional review observations (e.g. All checks within range, containment verified)..."
-                      rows={2}
-                      style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', resize: 'none' }}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={signingOff}
-                    onClick={() => handleSignOffSubmit(selectedSubmission.id)}
-                    className="btn btn-primary"
-                    style={{ width: '100%', fontSize: '0.8rem', background: 'var(--primary)', borderColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
-                  >
-                    <CheckCircle size={15} />
-                    <span>{signingOff ? 'Signing off...' : 'Approve & Sign Off Record'}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
+          {currentUser?.role_id === 'admin' && (
+            <>
+              <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+              <button
+                type="button"
+                onClick={() => {
+                  const target = rowActionMenu.sub;
+                  setRowActionMenu(null);
+                  setSubmissionToDelete(target);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  color: 'var(--danger, #dc2626)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Trash2 size={13} />
+                <span>Move to Trash</span>
+              </button>
+            </>
+          )}
+        </div>,
+        document.body
       )}
 
       <ConfirmModal
         isOpen={!!submissionToDelete}
-        title="Chuyển bản ghi vào Thùng rác?"
+        title="Move record to Trash?"
         message={
           submissionToDelete ? (
             <div>
-              Bản ghi này sẽ được chuyển vào <strong>Thùng rác</strong> để lưu giữ an toàn.
+              This submission will be moved to <strong>Trash</strong> for safe keeping.
               <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
                 <strong>ID:</strong> {submissionToDelete.id}<br />
                 <strong>Operator:</strong> {submissionToDelete.operatorId}<br />
-                <strong>Ngày gửi:</strong> {new Date(submissionToDelete.submittedAt).toLocaleString('vi-VN')}
+                <strong>Submitted:</strong> {new Date(submissionToDelete.submittedAt).toLocaleString('en-GB')}
               </div>
               <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                * Toàn bộ ảnh bằng chứng đính kèm được giữ nguyên và có thể khôi phục bất kỳ lúc nào từ Thùng rác.
+                * All attached photo evidence is preserved and can be restored anytime from Trash.
               </p>
             </div>
           ) : ''
         }
-        confirmText="Chuyển vào thùng rác"
-        cancelText="Hủy"
+        confirmText="Move to Trash"
+        cancelText="Cancel"
         variant="warning"
         loading={deleting}
         onConfirm={handleDeleteSubmission}
@@ -1499,7 +1380,7 @@ export default function SubmissionManager({
               }}
             >
               <RotateCcw size={12} />
-              <span>Hoàn tác</span>
+              <span>Undo</span>
             </button>
           )}
           <button

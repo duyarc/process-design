@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-10-26) — Subtraction Design Mantra & ASCII Wireframe Audit Standard integrated into Design System |
+| **Verified At Commit** | (2026-11-26) — Compact `.quote-card` rhythm & segmented Dashboard switcher pattern verified against `index.css` and `Dashboard.tsx` |
 
 ## 1. Design Principles
 
@@ -216,3 +216,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-09-17 | `CURRENT` | **Dashboard Forms Table Hover-to-Reveal Actions & Segmented Clusters:** Added `.dashboard-form-row:hover .dashboard-form-actions-reveal` and `.dashboard-btn-cluster` utility classes in `src/index.css`. Cột Actions ở trạng thái idle hiển thị dấu ba chấm mờ (`⋯`), ẩn toàn bộ cụm nút (zero layout shift); khi hover vào dòng sẽ hiện 3 cụm nút (Vận hành, In ấn, Thiết kế) mượt mà 0.18s cubic-bezier. |
 | 2026-09-22 | `CURRENT` | **ConfirmModal Success Variant & Single-Action Alert Mode:** Extended `ConfirmModal` with `variant="success"` (`CheckCircle` icon with emerald/teal circle) and `hideCancel?: boolean` to support streamlined single-button acknowledgment dialogs (`confirmText="OK"`), eliminating legacy browser `alert()` popups in compliance with Rule 3. |
 | 2026-10-26 | `CURRENT` | **Subtraction Design Mantra & ASCII Wireframing:** Added §1.1 codifying the 3 Crucial Audit Questions, 4 Minimalist Criteria, Zero UI Garbage Blacklist, and mandatory Before/After ASCII wireframe comparison with UI Element Audit Table in planning artifacts. |
+| 2026-11-26 | `CURRENT` | **Compact `.quote-card` & Operational Chrome Discipline:** Tightened `.quote-card` vertical rhythm (`padding: 1rem 1.5rem`, `margin-bottom: 1.25rem`, `1.02rem` quote text) in `src/index.css` and restricted rendering to the `Processes` home view while replacing bordered row buttons and pill tabs with unified `36px` Segmented Tabs and borderless ghost row actions. |

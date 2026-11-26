@@ -17,7 +17,7 @@ const FormReport = lazy(() => import('./components/FormReport'));
 const ModuleLoadingFallback: React.FC = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
     <div style={{ display: 'inline-block', width: '22px', height: '22px', border: '2.5px solid var(--neutral-border, #e2e8f0)', borderTopColor: 'var(--primary, #0f766e)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '10px' }} />
-    <span>Đang tải mô-đun...</span>
+    <span>Loading module...</span>
   </div>
 );
 
@@ -111,7 +111,7 @@ const MainApp: React.FC = () => {
         })
           .then(res => {
             if (res.status === 403) {
-              setSharedProcessError('Quy trình này đang ở chế độ riêng tư nội bộ.');
+              setSharedProcessError('This process is restricted to internal users.');
               throw new Error('Private process');
             }
             if (!res.ok) throw new Error('Process not found');
@@ -263,7 +263,7 @@ const MainApp: React.FC = () => {
   if (shortLinkLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--neutral-bg)' }}>
-        <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Đang mở biểu mẫu số...</div>
+        <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Opening form...</div>
       </div>
     );
   }
@@ -291,10 +291,10 @@ const MainApp: React.FC = () => {
             {sharedProcessError}
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
-            Vui lòng đăng nhập với tài khoản nội bộ để xem quy trình.
+            Please sign in with an internal account to view this process.
           </p>
           <button className="btn btn-primary" onClick={() => { window.location.href = '/'; }}>
-            Đăng nhập
+            Sign In
           </button>
         </div>
       );
@@ -397,7 +397,7 @@ const MainApp: React.FC = () => {
                     background: 'var(--surface, #fff)', borderRadius: '10px',
                     border: '1px solid var(--neutral-border)',
                     boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-                    width: '160px', padding: '0.25rem 0', zIndex: 999,
+                    width: '168px', padding: '0.25rem 0', zIndex: 999,
                     display: 'flex', flexDirection: 'column',
                     overflow: 'hidden',
                   }}>
@@ -439,7 +439,7 @@ const MainApp: React.FC = () => {
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                       >
                         <Trash2 size={14} />
-                        <span>Thùng rác</span>
+                        <span>Trash</span>
                       </button>
                     )}
                     {hasPermission('manage_users') && (
@@ -480,7 +480,7 @@ const MainApp: React.FC = () => {
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                     >
                       <LogOut size={14} />
-                      <span>Đăng xuất</span>
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 </>
@@ -557,7 +557,7 @@ const MainApp: React.FC = () => {
             isShortLinkFlow={Boolean(resolvedShortForm)}
             preloadedFormTemplate={preloadedFormTemplate || undefined}
             onSubmitSuccess={(subId) => {
-              setToastMessage(`Đã gửi phiếu thành công! (Mã: ${subId})`);
+              setToastMessage(`Submission recorded (#${subId})`);
               setInitialFormFilter(selectedFormName);
               setDashboardViewMode('submissions');
               setPage('dashboard');
@@ -593,7 +593,7 @@ const MainApp: React.FC = () => {
           hasPermission('manage_users')
             ? <Suspense fallback={<ModuleLoadingFallback />}><UserManagement onBack={() => setPage(prevPage)} /></Suspense>
             : <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                Bạn không có quyền truy cập trang này.
+                You do not have permission to access this page.
               </div>
         )}
       </main>
@@ -605,7 +605,7 @@ const MainApp: React.FC = () => {
             initialFormId={reportBuilderState.formId}
             initialReportId={reportBuilderState.reportId}
             onSave={(saved) => {
-              setToastMessage(`Đã lưu mẫu báo cáo ${saved.reportId} (${saved.version})`);
+              setToastMessage(`Report template ${saved.reportId} (${saved.version}) saved.`);
             }}
             onClose={() => setReportBuilderState({ isOpen: false })}
           />
