@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-06) — SIGN Block Smart Defaults, In-Grid Ghost Slot, Inline Editing & 4-column expansion verified against source |
+| **Verified At Commit** | (2026-11-26) — FormBuilder soft-delete ConfirmModal adoption, deletedBy attribution & swr_forms cleanup verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -528,3 +528,4 @@ full diff of any entry below.
 | 2026-11-06 | **Default Guidance State Persistence (`types`, `FormBuilder`, `server`, `formUtils`):** Added `defaultGuidanceExpanded` to `FormTemplateISO` and backend persistence; synced FormBuilder guidance toggle button and property panel toggle with template snapshot and SWR storage. |
 | 2026-11-06 | **INFO_GRID In-Grid Ghost Slot & Bottom Bar Eradication (`FormBuilder.tsx`):** Eradicated the 100% full-width dashed '+ Thêm trường vào khối' bottom bar. Replaced it with an In-Grid Ghost Slot occupying a single column cell in the natural grid flow; auto-reveals on hover (`hoveredBlockId`) or block selection (`isBlockSelected`), and collapses when idle for zero canvas overhead. |
 | 2026-11-06 | **SIGN Block Complete Overhaul (`types`, `formUtils`, `FormBuilder`):** (1) Added smart defaults initializing 2 signature fields (*Người lập biểu*, *Người phê duyệt*) with `columns: 2`. (2) Eradicated dead-end empty state with friendly trigger. (3) Added In-Grid Ghost Slot (+ Thêm chữ ký) with hover-reveal. (4) Enabled in-canvas inline editing for role title and action hint with AutoID on blur. (5) Added direct delete [✕] and reorder [←][→] controls. (6) Expanded column configuration to 4 columns (`columns: 1 | 2 | 3 | 4`). |
+| 2026-11-26 | **Form Version Soft-Delete & `ConfirmModal` Adoption (`FormBuilder.tsx`, `types.ts`):** Added optional `deletedAt`/`deletedBy` to `FormTemplateISO`; converted `handleDeleteActiveDraft`, `handleDeleteVersion`, and `handleDeleteRevisionEntry` from `window.confirm()` to `ConfirmModal` (`deleteConfirmModal`) sending `deletedBy` to soft-delete API and pruning `swr_forms` cache. |

@@ -176,7 +176,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   onClearInitialEditOpts,
   exitOnCloseForm
 }) => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentUser } = useAuth();
+  const [showDeleteProcessModal, setShowDeleteProcessModal] = useState(false);
   const formatDMY = (dateInput: any) => {
     if (!dateInput) return '';
     const d = new Date(dateInput);
@@ -469,21 +470,33 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   const isReadOnly = status !== 'Draft';
 
-  const handleDeleteProcess = async () => {
+  const handleDeleteProcess = () => {
     if (!processId) return;
-    if (!window.confirm('Are you sure you want to delete this draft version? This action is permanent.')) return;
+    setShowDeleteProcessModal(true);
+  };
 
+  const executeDeleteProcess = async () => {
+    if (!processId) return;
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const qs = actor ? `?deletedBy=${encodeURIComponent(actor)}` : '';
     try {
       setSaving(true);
-      const res = await fetch(`/api/processes/${processId}`, {
+      const res = await fetch(`/api/processes/${encodeURIComponent(processId)}${qs}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error('Failed to delete draft version');
-      alert('Draft version deleted successfully.');
+      if (!res.ok) throw new Error('Failed to move draft version to trash');
+      try {
+        const cachedRaw = sessionStorage.getItem('swr_processes');
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          sessionStorage.setItem('swr_processes', JSON.stringify(cached.filter((p: any) => p.id !== processId)));
+        }
+      } catch (_) {}
+      setShowDeleteProcessModal(false);
       onCancel();
     } catch (err) {
       console.error(err);
-      alert('Error deleting draft version.');
+      alert('Lỗi khi chuyển phiên bản quy trình vào Thùng rác.');
     } finally {
       setSaving(false);
     }
@@ -3677,6 +3690,18 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           onClose={() => setPrintTemplateData(null)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={showDeleteProcessModal}
+        title="Chuyển phiên bản quy trình vào Thùng rác?"
+        message="Phiên bản nháp này sẽ được chuyển vào Thùng rác (giữ nguyên toàn bộ liên kết biểu mẫu và dữ liệu). Bạn có thể khôi phục bất kỳ lúc nào từ Thùng rác trên Dashboard."
+        variant="warning"
+        confirmText="Chuyển vào thùng rác"
+        cancelText="Hủy"
+        loading={saving}
+        onConfirm={executeDeleteProcess}
+        onCancel={() => setShowDeleteProcessModal(false)}
+      />
 
       <ConfirmModal
         isOpen={roleDeleteWarning.isOpen}

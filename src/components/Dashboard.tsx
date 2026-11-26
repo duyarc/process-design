@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Process, ReportTemplateISO } from '../types';
+import type { Process, ReportTemplateISO, TrashEntityType } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Calendar, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, FilePlus } from 'lucide-react';
+import { Plus, FileText, Eye, Calendar, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import DashboardToolbar from './common/DashboardToolbar';
+import ConfirmModal from './common/ConfirmModal';
+import SystemTrashView from './common/SystemTrashView';
 import { generateNextFormId, duplicateFormTemplate, linkDuplicatedFormToSteps } from '../utils/formUtils';
 
 interface DashboardProps {
@@ -16,8 +18,8 @@ interface DashboardProps {
   onOpenFormFiller?: (processId: string, formName: string, preloadedFormTemplate?: any) => void;
   onOpenReportBuilder?: (formId?: string, reportId?: string) => void;
   onOpenFormReport?: (submissionId: string) => void;
-  viewMode?: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide';
-  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide') => void;
+  viewMode?: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash';
+  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash') => void;
   initialFormFilter?: string | null;
   onClearFormFilter?: () => void;
   onViewingSubmissionChange?: (isViewing: boolean) => void;
@@ -93,8 +95,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
   const [isViewingSubmission, setIsViewingSubmission] = useState(false);
   const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+    undoItem?: { entityType: TrashEntityType; id: string; version?: string };
+  } | null>(null);
   const [collapsedProcessGroups, setCollapsedProcessGroups] = useState<Record<string, boolean>>({});
+  const [trashCount, setTrashCount] = useState<number>(0);
+  const [lastActiveTab, setLastActiveTab] = useState<'processes' | 'forms' | 'submissions' | 'reports'>('processes');
+  const [deleteTarget, setDeleteTarget] = useState<{
+    entityType: 'process' | 'form' | 'report';
+    id: string;
+    title: string;
+    version?: string;
+    note?: string;
+  } | null>(null);
+  const [deletingTarget, setDeletingTarget] = useState(false);
 
   const toggleProcessGroup = (processId: string) => {
     setCollapsedProcessGroups(prev => ({
@@ -105,7 +121,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3500);
+    const duration = toast.undoItem ? 5000 : 3500;
+    const timer = setTimeout(() => setToast(null), duration);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -130,6 +147,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
   const { hasPermission, currentUser } = useAuth();
+  const canAccessTrash = hasPermission('design_document') || currentUser?.role_id === 'admin';
+
+  useEffect(() => {
+    if (viewMode === 'processes' || viewMode === 'forms' || viewMode === 'submissions' || viewMode === 'reports') {
+      setLastActiveTab(viewMode);
+    }
+  }, [viewMode]);
+
+  const fetchTrashCount = async () => {
+    if (!canAccessTrash) return;
+    try {
+      const res = await fetch('/api/trash/count');
+      if (res.ok) {
+        const counts = await res.json();
+        const isAdminUser = currentUser?.role_id === 'admin';
+        const visibleCount = isAdminUser
+          ? (counts.total || 0)
+          : Math.max(0, (counts.total || 0) - (counts.submission || 0));
+        setTrashCount(visibleCount);
+      }
+    } catch (_) {}
+  };
 
   const fetchProcesses = async (isBackground = false) => {
     try {
@@ -172,11 +211,95 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const hasCache = !!sessionStorage.getItem('swr_processes');
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProcesses(hasCache);
+    fetchTrashCount();
   }, []);
 
 
 
 
+
+  const handleConfirmSoftDelete = async () => {
+    if (!deleteTarget) return;
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const deletedByParam = actor ? `deletedBy=${encodeURIComponent(actor)}` : '';
+    try {
+      setDeletingTarget(true);
+      let url = '';
+      if (deleteTarget.entityType === 'process') {
+        url = `/api/processes/${encodeURIComponent(deleteTarget.id)}${deletedByParam ? `?${deletedByParam}` : ''}`;
+      } else if (deleteTarget.entityType === 'form') {
+        url = `/api/forms/${encodeURIComponent(deleteTarget.id)}${deletedByParam ? `?${deletedByParam}` : ''}`;
+      } else {
+        url = `/api/reports/${encodeURIComponent(deleteTarget.id)}${deletedByParam ? `?${deletedByParam}` : ''}`;
+      }
+
+      const res = await fetch(url, { method: 'DELETE' });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Không thể chuyển vào Thùng rác');
+      }
+
+      // Sync local state + sessionStorage SWR caches immediately
+      if (deleteTarget.entityType === 'process') {
+        setProcesses(prev => {
+          const next = prev.filter(p => p.id !== deleteTarget.id);
+          try { sessionStorage.setItem('swr_processes', JSON.stringify(next)); } catch (_) {}
+          return next;
+        });
+      } else if (deleteTarget.entityType === 'form') {
+        setAllForms(prev => {
+          const next = prev.filter(f => (f.form_id || f.formId) !== deleteTarget.id);
+          try { sessionStorage.setItem('swr_forms', JSON.stringify(next)); } catch (_) {}
+          return next;
+        });
+      } else if (deleteTarget.entityType === 'report') {
+        setReportTemplates(prev => {
+          const next = prev.filter(r => r.reportId !== deleteTarget.id);
+          try { sessionStorage.setItem('swr_reports', JSON.stringify(next)); } catch (_) {}
+          return next;
+        });
+      }
+
+      const targetSnapshot = deleteTarget;
+      setDeleteTarget(null);
+      setToast({
+        message: `Đã chuyển "${targetSnapshot.title}" vào Thùng rác.`,
+        type: 'success',
+        undoItem: {
+          entityType: targetSnapshot.entityType,
+          id: targetSnapshot.id,
+          version: targetSnapshot.entityType === 'form' ? undefined : targetSnapshot.version
+        }
+      });
+      await fetchTrashCount();
+    } catch (err) {
+      console.error(err);
+      setToast({
+        message: err instanceof Error ? err.message : 'Lỗi khi xóa mục đã chọn.',
+        type: 'error'
+      });
+    } finally {
+      setDeletingTarget(false);
+    }
+  };
+
+  const handleUndoSoftDelete = async () => {
+    const undo = toast?.undoItem;
+    if (!undo) return;
+    try {
+      const res = await fetch('/api/trash/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(undo)
+      });
+      if (!res.ok) throw new Error('Không thể hoàn tác');
+      setToast({ message: 'Đã khôi phục thành công!', type: 'success' });
+      await Promise.all([fetchProcesses(true), fetchTrashCount()]);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Lỗi khi hoàn tác.', type: 'error' });
+    }
+  };
 
   // Group processes by family (parentProcessId)
   const groups: { [parentId: string]: Process[] } = {};
@@ -577,6 +700,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <Printer size={12} /> Print
             </button>
+            {hasPermission('design_document') && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                title="Chuyển vào Thùng rác"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  width: '28px',
+                  height: '28px',
+                  flex: 'none',
+                  margin: 0,
+                  color: 'var(--text-secondary)'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                onClick={() => setDeleteTarget({
+                  entityType: 'process',
+                  id: currentRep.id,
+                  title: currentRep.title,
+                  version: currentRep.version,
+                  note: 'Quy trình và các liên kết sẽ được ẩn đi và giữ nguyên dữ liệu để bạn có thể khôi phục bất kỳ lúc nào.'
+                })}
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -712,6 +864,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         >
                           <Printer size={12} />
                         </button>
+                        {hasPermission('design_document') && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            title="Chuyển vào Thùng rác"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0.25rem 0.45rem',
+                              height: '26px',
+                              margin: 0,
+                              color: 'var(--text-secondary)'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                            onClick={() => setDeleteTarget({
+                              entityType: 'process',
+                              id: currentRep.id,
+                              title: currentRep.title,
+                              version: currentRep.version,
+                              note: 'Quy trình và các liên kết sẽ được ẩn đi và giữ nguyên dữ liệu để bạn có thể khôi phục bất kỳ lúc nào.'
+                            })}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -772,7 +951,49 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {viewMode !== 'guide' && (
-          viewMode !== 'submissions' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {canAccessTrash && (
+              <button
+                type="button"
+                className={`btn btn-sm ${viewMode === 'trash' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => {
+                  if (viewMode === 'trash') {
+                    onViewModeChange && onViewModeChange(lastActiveTab);
+                  } else {
+                    onViewModeChange && onViewModeChange('trash');
+                  }
+                  setSearchQuery('');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  height: '34px',
+                  padding: '0 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  margin: 0
+                }}
+                title="Mở Thùng rác toàn hệ thống"
+              >
+                <Trash2 size={13} />
+                <span>Thùng rác</span>
+                {trashCount > 0 && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '0 0.35rem',
+                    borderRadius: '10px',
+                    background: viewMode === 'trash' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                    color: viewMode === 'trash' ? '#ffffff' : 'var(--text-primary)'
+                  }}>
+                    {trashCount}
+                  </span>
+                )}
+              </button>
+            )}
+            {viewMode !== 'submissions' && viewMode !== 'trash' ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid var(--neutral-border)', height: '34px', boxSizing: 'border-box' }}>
               <button
                 type="button"
@@ -819,9 +1040,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <Grid size={15} />
               </button>
             </div>
-          ) : (
-            <div style={{ height: '34px', width: '64px' }} />
-          )
+            ) : (
+              <div style={{ height: '34px' }} />
+            )}
+          </div>
         )}
       </div>
       )}
@@ -834,6 +1056,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             viewMode === 'processes' ? "Search processes..." :
             viewMode === 'forms' ? "Search forms..." :
             viewMode === 'submissions' ? "Search submissions..." :
+            viewMode === 'trash' ? "Tìm theo mã, tên, người xóa..." :
             "Search reports..."
           }
           filters={
@@ -902,6 +1125,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <Plus size={16} />
                 New Report Template
               </button>
+            ) : viewMode === 'trash' ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  onViewModeChange && onViewModeChange(lastActiveTab);
+                  setSearchQuery('');
+                }}
+                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ArrowLeft size={15} />
+                Quay lại
+              </button>
             ) : undefined
           }
         />
@@ -934,10 +1170,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
           onOpenFormFiller={onOpenFormFiller}
+          onTrashChanged={fetchTrashCount}
           onViewingChange={(isViewing) => {
             setIsViewingSubmission(isViewing);
             onViewingSubmissionChange?.(isViewing);
           }}
+        />
+      ) : viewMode === 'trash' ? (
+        <SystemTrashView
+          searchQuery={searchQuery}
+          isAdmin={currentUser?.role_id === 'admin'}
+          onDataChanged={() => {
+            fetchProcesses(true);
+            fetchTrashCount();
+          }}
+          onToast={(t) => setToast(t)}
         />
       ) : viewMode === 'guide' ? (
         <BPMNGuide />
@@ -1028,6 +1275,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
                                 >
                                   <Edit2 size={12} />
+                                </button>
+                              )}
+                              {hasPermission('design_document') && (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.45rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px', color: 'var(--text-secondary)' }}
+                                  title="Chuyển vào Thùng rác"
+                                  onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                  onClick={() => setDeleteTarget({
+                                    entityType: 'report',
+                                    id: rep.reportId,
+                                    title: rep.reportTitle,
+                                    version: rep.version,
+                                    note: 'Mẫu báo cáo sẽ được chuyển vào Thùng rác và có thể khôi phục lại bất kỳ lúc nào.'
+                                  })}
+                                >
+                                  <Trash2 size={12} />
                                 </button>
                               )}
                             </div>
@@ -1469,6 +1735,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     <SlidersHorizontal size={13} />
                                   </button>
                                 )}
+
+                                {/* Nút 5: Chuyển vào Thùng rác */}
+                                {hasPermission('design_document') && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    title="Chuyển vào Thùng rác"
+                                    onClick={() => setDeleteTarget({
+                                      entityType: 'form',
+                                      id: form.formId,
+                                      title: form.formTitle || form.formId,
+                                      version: form.version,
+                                      note: form.linkedProcesses.length > 0
+                                        ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
+                                        : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
+                                    })}
+                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', color: 'var(--text-secondary)' }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1664,6 +1953,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   Báo cáo
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 'none', width: '28px', height: '28px', padding: 0, margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+                                title="Chuyển vào Thùng rác"
+                                onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                onClick={() => setDeleteTarget({
+                                  entityType: 'form',
+                                  id: form.formId,
+                                  title: form.formTitle || form.formId,
+                                  version: form.version,
+                                  note: form.linkedProcesses.length > 0
+                                    ? 'Liên kết quy trình, hồ sơ đã nộp và ảnh đính kèm vẫn được bảo toàn; khi khôi phục biểu mẫu sẽ tự động hoạt động lại.'
+                                    : 'Biểu mẫu sẽ được lưu trong Thùng rác và có thể khôi phục bất kỳ lúc nào.'
+                                })}
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1840,6 +2148,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       )}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        title="Chuyển vào Thùng rác?"
+        message={
+          deleteTarget ? (
+            <div>
+              Bạn có chắc chắn muốn chuyển <strong>{deleteTarget.title}</strong> (<code>{deleteTarget.id}</code>) vào Thùng rác?
+              {deleteTarget.note && (
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  {deleteTarget.note}
+                </p>
+              )}
+            </div>
+          ) : ''
+        }
+        confirmText="Chuyển vào thùng rác"
+        cancelText="Hủy"
+        variant="warning"
+        loading={deletingTarget}
+        onConfirm={handleConfirmSoftDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
       {toast && (
         <div style={{
           position: 'fixed',
@@ -1852,7 +2183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.6rem',
+          gap: '0.75rem',
           fontSize: '0.85rem',
           fontWeight: 500,
           zIndex: 9999,
@@ -1860,6 +2191,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }}>
           {toast.type === 'success' ? <Check size={16} style={{ color: '#34d399' }} /> : <span>⚠️</span>}
           <span>{toast.message}</span>
+          {toast.undoItem && (
+            <button
+              type="button"
+              onClick={handleUndoSoftDelete}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                background: 'rgba(255,255,255,0.14)',
+                border: '1px solid rgba(255,255,255,0.28)',
+                color: '#5eead4',
+                borderRadius: '5px',
+                padding: '0.2rem 0.55rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <RotateCcw size={12} />
+              <span>Hoàn tác</span>
+            </button>
+          )}
         </div>
       )}
     </div>

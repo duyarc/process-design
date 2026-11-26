@@ -1492,6 +1492,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [hoveredTableRowKey, setHoveredTableRowKey] = useState<string | null>(null);
   const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
@@ -3138,45 +3144,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       setLoading(false);
     }
 
-    // 2. Prompt confirmation
-    const confirmMessage = `⚠️ Bạn có chắc chắn muốn xóa phiên bản lịch sử ${targetVersion}?\nThao tác này sẽ xóa vĩnh viễn phiên bản này khỏi lịch sử và không thể hoàn tác.`;
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    // 2. Prompt confirmation with ConfirmModal (soft delete -> Trash)
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const deletedByParam = actor ? `&deletedBy=${encodeURIComponent(actor)}` : '';
+    setDeleteConfirmModal({
+      title: `Chuyển phiên bản ${targetVersion} vào Thùng rác?`,
+      message: `Phiên bản lịch sử ${targetVersion} sẽ được chuyển vào Thùng rác và bạn có thể khôi phục lại từ mục Thùng rác trên Dashboard.`,
+      confirmText: 'Chuyển vào thùng rác',
+      onConfirm: async () => {
+        const updatedHistory = revisionHistory.filter(h => h.version !== targetVersion);
+        setRevisionHistory(updatedHistory);
 
-    // 3. Filter out targetVersion
-    const updatedHistory = revisionHistory.filter(h => h.version !== targetVersion);
-    setRevisionHistory(updatedHistory);
+        if (viewingRevisionVersion === targetVersion) {
+          if (currentDraftBackup) {
+            setLayoutBlocks(currentDraftBackup.layoutBlocks);
+            setVersion(currentDraftBackup.version);
+            setIsLocked(currentDraftBackup.isLocked);
+            setCurrentDraftBackup(null);
+          }
+          setViewingRevisionVersion(null);
+        }
 
-    if (viewingRevisionVersion === targetVersion) {
-      if (currentDraftBackup) {
-        setLayoutBlocks(currentDraftBackup.layoutBlocks);
-        setVersion(currentDraftBackup.version);
-        setIsLocked(currentDraftBackup.isLocked);
-        setCurrentDraftBackup(null);
+        try {
+          setLoading(true);
+          const deleteRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}${deletedByParam}`, {
+            method: 'DELETE'
+          });
+          if (!deleteRes.ok && deleteRes.status !== 404) {
+            console.warn('Could not move version row to trash in DB:', await deleteRes.text());
+          }
+          await saveFormToBackend({ historyOverride: updatedHistory, allowActiveUpdate: true });
+        } catch (err) {
+          console.error('Error saving updated history after soft delete:', err);
+        } finally {
+          setLoading(false);
+          setDeleteConfirmModal(null);
+        }
       }
-      setViewingRevisionVersion(null);
-    }
-
-    // 4. Delete the version row from backend if it exists and save updated history
-    try {
-      setLoading(true);
-      // Delete version row from forms table if present
-      const deleteRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`, {
-        method: 'DELETE'
-      });
-
-      if (!deleteRes.ok && deleteRes.status !== 404) {
-        console.warn('Could not delete version row from DB:', await deleteRes.text());
-      }
-
-      // Save updated history list to current active/draft form record
-      await saveFormToBackend({ historyOverride: updatedHistory, allowActiveUpdate: true });
-    } catch (err) {
-      console.error('Error saving updated history after delete:', err);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleReturnToDraft = () => {
@@ -3213,81 +3218,81 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
-  const handleDeleteVersion = async () => {
+  const handleDeleteVersion = () => {
     if (!viewingRevisionVersion) return;
-    if (confirm(`Bạn có chắc chắn muốn xóa phiên bản ${viewingRevisionVersion}?`)) {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(viewingRevisionVersion)}`, {
-          method: 'DELETE'
-        });
-        
-        if (!res.ok) {
-          const text = await res.text();
-          let errMsg = 'Server error';
-          try {
-            const errData = JSON.parse(text);
-            errMsg = errData.error || errMsg;
-          } catch (_) {
-            errMsg = `Yêu cầu không hợp lệ (${res.status}). Vui lòng đảm bảo backend server đã được khởi động lại để kích hoạt các API mới.`;
+    const targetVer = viewingRevisionVersion;
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const deletedByParam = actor ? `&deletedBy=${encodeURIComponent(actor)}` : '';
+    setDeleteConfirmModal({
+      title: `Chuyển phiên bản ${targetVer} vào Thùng rác?`,
+      message: `Phiên bản ${targetVer} của biểu mẫu "${formId}" sẽ được chuyển vào Thùng rác và có thể khôi phục bất kỳ lúc nào.`,
+      confirmText: 'Chuyển vào thùng rác',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVer)}${deletedByParam}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `Yêu cầu không hợp lệ (${res.status})`);
           }
-          throw new Error(errMsg);
+          const updatedHistory = revisionHistory.filter(h => h.version !== targetVer);
+          setRevisionHistory(updatedHistory);
+          if (currentDraftBackup) {
+            setLayoutBlocks(currentDraftBackup.layoutBlocks);
+            setVersion(currentDraftBackup.version);
+            setIsLocked(currentDraftBackup.isLocked);
+            setCurrentDraftBackup(null);
+          }
+          setViewingRevisionVersion(null);
+        } catch (err) {
+          console.error(err);
+          alert(`Không thể chuyển phiên bản vào Thùng rác: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
+        } finally {
+          setLoading(false);
+          setDeleteConfirmModal(null);
         }
-        
-        // Update local history list
-        const updatedHistory = revisionHistory.filter(h => h.version !== viewingRevisionVersion);
-        setRevisionHistory(updatedHistory);
-        
-        // Return to draft state
-        if (currentDraftBackup) {
-          setLayoutBlocks(currentDraftBackup.layoutBlocks);
-          setVersion(currentDraftBackup.version);
-          setIsLocked(currentDraftBackup.isLocked);
-          setCurrentDraftBackup(null);
-        }
-        setViewingRevisionVersion(null);
-        
-        alert(`Đã xóa thành công phiên bản ${viewingRevisionVersion}.`);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-        alert(`Không thể xóa phiên bản: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
-      } finally {
-        setLoading(false);
       }
-    }
+    });
   };
 
-  const handleDeleteActiveDraft = async () => {
-    if (confirm('Bạn có chắc chắn muốn xóa bản nháp này?')) {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(version)}`, {
-          method: 'DELETE'
-        });
-        
-        if (!res.ok) {
-          const text = await res.text();
-          let errMsg = 'Server error';
-          try {
-            const errData = JSON.parse(text);
-            errMsg = errData.error || errMsg;
-          } catch (_) {
-            errMsg = `Yêu cầu không hợp lệ (${res.status}). Vui lòng đảm bảo backend server đã được khởi động lại để kích hoạt các API mới.`;
+  const handleDeleteActiveDraft = () => {
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const deletedByParam = actor ? `&deletedBy=${encodeURIComponent(actor)}` : '';
+    setDeleteConfirmModal({
+      title: `Chuyển bản nháp ${version} vào Thùng rác?`,
+      message: `Bản nháp hiện tại (${version}) của biểu mẫu "${formId}" sẽ được chuyển vào Thùng rác và có thể khôi phục lại từ Dashboard.`,
+      confirmText: 'Chuyển vào thùng rác',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(version)}${deletedByParam}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `Yêu cầu không hợp lệ (${res.status})`);
           }
-          throw new Error(errMsg);
+          try {
+            const cachedRaw = sessionStorage.getItem('swr_forms');
+            if (cachedRaw) {
+              const cachedForms: any[] = JSON.parse(cachedRaw);
+              const nextForms = cachedForms.filter((f: any) => !((f.form_id === formId || f.formId === formId) && f.version === version));
+              sessionStorage.setItem('swr_forms', JSON.stringify(nextForms));
+            }
+          } catch (_) {}
+          setDeleteConfirmModal(null);
+          onClose();
+        } catch (err) {
+          console.error(err);
+          alert(`Không thể chuyển bản nháp vào Thùng rác: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
+        } finally {
+          setLoading(false);
+          setDeleteConfirmModal(null);
         }
-        
-        alert(`Đã xóa thành công bản nháp.`);
-        onClose();
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-        alert(`Không thể xóa bản nháp: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
-      } finally {
-        setLoading(false);
       }
-    }
+    });
   };
 
   const handleCreateNewVersion = () => {
@@ -12706,6 +12711,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           }
         }}
         onCancel={() => setBlockToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(deleteConfirmModal)}
+        title={deleteConfirmModal?.title || ''}
+        message={deleteConfirmModal?.message || ''}
+        confirmText={deleteConfirmModal?.confirmText || 'Chuyển vào thùng rác'}
+        cancelText="Hủy"
+        variant="warning"
+        loading={loading}
+        onConfirm={() => { deleteConfirmModal?.onConfirm(); }}
+        onCancel={() => setDeleteConfirmModal(null)}
       />
 
       <ImageGalleryModal

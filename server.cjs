@@ -59,6 +59,28 @@ if (DATABASE_URL) {
   console.log('No DATABASE_URL found. Operating in local CSV file-based mode.');
 }
 
+// Lazy idempotent migration for soft-delete columns (essential on Vercel where initDatabase is skipped)
+let trashColumnsPromise = null;
+async function ensureTrashColumns() {
+  if (!dbPool) return;
+  if (!trashColumnsPromise) {
+    trashColumnsPromise = dbPool.query(`
+      ALTER TABLE processes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE processes ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+      ALTER TABLE forms ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE forms ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE submissions ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+      ALTER TABLE report_templates ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE report_templates ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+    `).catch((err) => {
+      trashColumnsPromise = null;
+      console.error('ensureTrashColumns warning:', err.message);
+    });
+  }
+  await trashColumnsPromise;
+}
+
 // Cloudflare R2 Client configuration
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
@@ -191,6 +213,14 @@ const INITIALIZE_SCHEMA_QUERY = `
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_guidance_expanded BOOLEAN DEFAULT false;
   ALTER TABLE submissions ADD COLUMN IF NOT EXISTS access_token TEXT DEFAULT NULL;
   ALTER TABLE processes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
+  ALTER TABLE processes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  ALTER TABLE processes ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+  ALTER TABLE submissions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  ALTER TABLE submissions ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
+  ALTER TABLE report_templates ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+  ALTER TABLE report_templates ADD COLUMN IF NOT EXISTS deleted_by TEXT DEFAULT NULL;
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
@@ -580,6 +610,8 @@ function readProcessesFromCSV() {
           data.parentProcessId = data.parentProcessId || data.id;
           data.status = data.status || 'Active';
           data.version = data.version || '1';
+          data.deleted_at = data.deleted_at || null;
+          data.deleted_by = data.deleted_by || null;
 
           results.push(data);
         } catch (err) {
@@ -598,7 +630,7 @@ function readProcessesFromCSV() {
 // Write processes to CSV
 function writeProcessesToCSV(processes) {
   return new Promise((resolve, reject) => {
-    const headers = ['id', 'title', 'description', 'version', 'lastUpdated', 'roles', 'steps', 'formFields', 'sopSignoffs', 'workflowFormsData', 'parentProcessId', 'status'];
+    const headers = ['id', 'title', 'description', 'version', 'lastUpdated', 'roles', 'steps', 'formFields', 'sopSignoffs', 'workflowFormsData', 'parentProcessId', 'status', 'deleted_at', 'deleted_by'];
     const rows = [headers.join(',')];
 
     processes.forEach(proc => {
@@ -614,7 +646,9 @@ function writeProcessesToCSV(processes) {
         escapeCSVField(JSON.stringify(proc.sopSignoffs || {})),
         escapeCSVField(JSON.stringify(proc.workflowFormsData || {})),
         escapeCSVField(proc.parentProcessId || proc.id),
-        escapeCSVField(proc.status || 'Active')
+        escapeCSVField(proc.status || 'Active'),
+        escapeCSVField(proc.deleted_at || ''),
+        escapeCSVField(proc.deleted_by || '')
       ];
       rows.push(row.join(','));
     });
@@ -653,19 +687,24 @@ function writeFormsOffline(forms) {
 app.get('/api/forms', async (req, res) => {
   try {
     const isList = req.query.fields === 'list';
-    if (isList) {
+    const trashedOnly = req.query.trashed === 'only';
+    if (trashedOnly) {
+      res.set('Cache-Control', 'no-store');
+    } else if (isList) {
       res.set('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
     }
     if (dbPool) {
-      // Returns all rows (or metadata-only rows if fields=list) — frontend groups by form_id and picks the latest version
+      await ensureTrashColumns();
+      const whereClause = trashedOnly ? 'WHERE deleted_at IS NOT NULL' : 'WHERE deleted_at IS NULL';
+      const orderClause = trashedOnly ? 'ORDER BY deleted_at DESC' : 'ORDER BY form_id ASC, version ASC';
       const sql = isList
-        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, created_at, updated_at
-           FROM forms ORDER BY form_id ASC, version ASC`
-        : 'SELECT * FROM forms ORDER BY form_id ASC, version ASC';
+        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, created_at, updated_at, deleted_at, deleted_by
+           FROM forms ${whereClause} ${orderClause}`
+        : `SELECT * FROM forms ${whereClause} ${orderClause}`;
       const result = await dbPool.query(sql);
       res.json(result.rows);
     } else {
-      const forms = readFormsOffline();
+      const forms = readFormsOffline().filter(f => trashedOnly ? Boolean(f.deleted_at) : !f.deleted_at);
       if (isList) {
         return res.json(forms.map(({ layout_blocks, revision_history, ...rest }) => rest));
       }
@@ -685,14 +724,15 @@ app.get('/api/forms/*formId/history', async (req, res) => {
     let allFormRows = [];
 
     if (dbPool) {
+      await ensureTrashColumns();
       const result = await dbPool.query(
-        'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC',
+        'SELECT * FROM forms WHERE form_id = $1 AND deleted_at IS NULL ORDER BY updated_at DESC',
         [formId]
       );
       allFormRows = result.rows;
     } else {
       const forms = readFormsOffline();
-      allFormRows = forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      allFormRows = forms.filter(f => f.form_id === formId && !f.deleted_at).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
     }
 
     const mergedHistoryMap = new Map();
@@ -785,11 +825,13 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
     const targetSlug = toSlug(identifier);
 
     if (dbPool) {
-      // 1. Check process_forms table first to get real processId if linked
+      await ensureTrashColumns();
+      // 1. Check process_forms table first to get real processId if linked (active processes only)
       const pfRes = await dbPool.query(`
         SELECT pf.process_id, pf.form_name, pf.form_id, pf.form_version, p.title as process_title
         FROM process_forms pf
         JOIN processes p ON pf.process_id = p.id
+        WHERE p.deleted_at IS NULL
         ORDER BY pf.updated_at DESC
       `);
 
@@ -800,15 +842,27 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
 
       if (matchedPf) {
         let formRecord = null;
+        let onlyTrashed = false;
         try {
+          const pfKey = matchedPf.form_id || matchedPf.form_name;
           const fRes = await dbPool.query(
-            'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
-            [matchedPf.form_id || matchedPf.form_name]
+            'SELECT * FROM forms WHERE (form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1)) AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1',
+            [pfKey]
           );
           if (fRes.rows.length > 0) {
             formRecord = fRes.rows[0];
+          } else {
+            const trashCheck = await dbPool.query(
+              'SELECT 1 FROM forms WHERE (form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1)) AND deleted_at IS NOT NULL LIMIT 1',
+              [pfKey]
+            );
+            if (trashCheck.rows.length > 0) onlyTrashed = true;
           }
         } catch (_) {}
+
+        if (onlyTrashed) {
+          return res.status(404).json({ exists: false, error: 'Form is in trash' });
+        }
 
         const formIsPublic = formRecord ? (formRecord.is_public !== false && formRecord.public_permission !== 'internal') : true;
         const formPerm = formRecord?.public_permission || (formIsPublic ? 'fill' : 'internal');
@@ -826,7 +880,7 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       }
 
       // 2. Check processes table workflowFormsData
-      const procRes = await dbPool.query('SELECT id, title, "workflowFormsData" FROM processes');
+      const procRes = await dbPool.query('SELECT id, title, "workflowFormsData" FROM processes WHERE deleted_at IS NULL');
       for (const row of procRes.rows) {
         const wfForms = typeof row.workflowFormsData === 'string'
           ? JSON.parse(row.workflowFormsData || '{}')
@@ -856,7 +910,7 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       }
 
       // 3. Check standalone forms table
-      const formRes = await dbPool.query('SELECT * FROM forms ORDER BY updated_at DESC');
+      const formRes = await dbPool.query('SELECT * FROM forms WHERE deleted_at IS NULL ORDER BY updated_at DESC');
       const matchedForm = formRes.rows.find(formRecord =>
         (formRecord.form_id && (formRecord.form_id.toLowerCase() === identifier.toLowerCase() || toSlug(formRecord.form_id) === targetSlug)) ||
         (formRecord.form_name && (formRecord.form_name.toLowerCase() === identifier.toLowerCase() || toSlug(formRecord.form_name) === targetSlug)) ||
@@ -882,7 +936,7 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       return res.status(404).json({ exists: false, error: 'Form not found' });
     } else {
       // Offline fallback
-      const forms = readFormsOffline();
+      const forms = readFormsOffline().filter(f => !f.deleted_at);
       const form = forms.find(f => 
         (f.form_id && (f.form_id.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_id) === targetSlug)) ||
         (f.form_name && (f.form_name.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_name) === targetSlug)) ||
@@ -917,17 +971,18 @@ app.get('/api/forms/*formId', async (req, res) => {
     const formId = Array.isArray(req.params.formId) ? req.params.formId[0] : req.params.formId;
     const { version } = req.query;
     if (dbPool) {
+      await ensureTrashColumns();
       let result;
       if (version) {
         // Fetch exact version snapshot
         result = await dbPool.query(
-          'SELECT * FROM forms WHERE (form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1)) AND version = $2',
+          'SELECT * FROM forms WHERE (form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1)) AND version = $2 AND deleted_at IS NULL',
           [formId, version]
         );
       } else {
         // Fetch the most recently updated version (latest snapshot)
         result = await dbPool.query(
-          'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR form_title = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
+          'SELECT * FROM forms WHERE (form_id = $1 OR form_name = $1 OR form_title = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1)) AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1',
           [formId]
         );
       }
@@ -936,7 +991,7 @@ app.get('/api/forms/*formId', async (req, res) => {
       }
       res.json(result.rows[0]);
     } else {
-      const forms = readFormsOffline();
+      const forms = readFormsOffline().filter(f => !f.deleted_at);
       const form = version
         ? forms.find(f => (f.form_id === formId || f.form_name === formId || f.form_title === formId || (f.form_id && f.form_id.toLowerCase() === formId.toLowerCase()) || (f.form_name && f.form_name.toLowerCase() === formId.toLowerCase())) && f.version === version)
         : forms.filter(f => f.form_id === formId || f.form_name === formId || f.form_title === formId || (f.form_id && f.form_id.toLowerCase() === formId.toLowerCase()) || (f.form_name && f.form_name.toLowerCase() === formId.toLowerCase())).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
@@ -950,42 +1005,87 @@ app.get('/api/forms/*formId', async (req, res) => {
 });
 
 
-// DELETE /api/forms/:formId - Delete a specific form version (requires ?version=v0.2)
+// DELETE /api/forms/*formId - Soft-delete form (or specific ?version=), or hard-delete with ?permanent=true
 app.delete('/api/forms/*formId', async (req, res) => {
   try {
     const formId = Array.isArray(req.params.formId) ? req.params.formId[0] : req.params.formId;
-    const { version } = req.query;
-    if (!version) {
-      return res.status(400).json({ error: 'Missing required version parameter.' });
-    }
-    
+    const { version, permanent, deletedBy } = req.query;
+    const isPermanent = permanent === 'true';
+    const actor = deletedBy || (req.body && req.body.deletedBy) || null;
+    let affectedCount = 0;
+
     if (dbPool) {
-      const cleanVer = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
-      const result = await dbPool.query(
-        'DELETE FROM forms WHERE form_id = $1 AND (version = $2 OR REPLACE(REPLACE(version, \' (RETIRED)\', \'\'), \' (ACTIVE)\', \'\') = $3)',
-        [formId, version, cleanVer]
-      );
-      if (result.rowCount === 0) {
-        return res.status(404).json({ 
-          error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}". Phiên bản trong database có thể khác với phiên bản đang xem.`
-        });
+      await ensureTrashColumns();
+      if (version) {
+        const cleanVer = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
+        const result = isPermanent
+          ? await dbPool.query(
+              'DELETE FROM forms WHERE form_id = $1 AND (version = $2 OR REPLACE(REPLACE(version, \' (RETIRED)\', \'\'), \' (ACTIVE)\', \'\') = $3)',
+              [formId, version, cleanVer]
+            )
+          : await dbPool.query(
+              'UPDATE forms SET deleted_at = NOW(), deleted_by = $4 WHERE form_id = $1 AND (version = $2 OR REPLACE(REPLACE(version, \' (RETIRED)\', \'\'), \' (ACTIVE)\', \'\') = $3) AND deleted_at IS NULL',
+              [formId, version, cleanVer, actor]
+            );
+        if (result.rowCount === 0) {
+          return res.status(404).json({
+            error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}".`
+          });
+        }
+        affectedCount = result.rowCount;
+      } else {
+        const result = isPermanent
+          ? await dbPool.query('DELETE FROM forms WHERE form_id = $1', [formId])
+          : await dbPool.query(
+              'UPDATE forms SET deleted_at = NOW(), deleted_by = $2 WHERE form_id = $1 AND deleted_at IS NULL',
+              [formId, actor]
+            );
+        if (result.rowCount === 0) {
+          return res.status(404).json({ error: `Không tìm thấy biểu mẫu "${formId}".` });
+        }
+        affectedCount = result.rowCount;
       }
     } else {
       const forms = readFormsOffline();
-      const cleanTarget = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
-      const filtered = forms.filter(f => !(f.form_id === formId && (f.version === version || (f.version || '').replace(/\s*\([^)]*\)/g, '').trim() === cleanTarget)));
-      if (filtered.length === forms.length) {
-        return res.status(404).json({
-          error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}".`
+      const nowIso = new Date().toISOString();
+      const matchesTarget = (f) => {
+        if (f.form_id !== formId) return false;
+        if (!version) return true;
+        const cleanTarget = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
+        const cleanRow = (f.version || '').replace(/\s*\([^)]*\)/g, '').trim();
+        return f.version === version || cleanRow === cleanTarget;
+      };
+      if (isPermanent) {
+        const filtered = forms.filter(f => !matchesTarget(f));
+        affectedCount = forms.length - filtered.length;
+        if (affectedCount === 0) return res.status(404).json({ error: `Không tìm thấy biểu mẫu "${formId}".` });
+        writeFormsOffline(filtered);
+      } else {
+        forms.forEach(f => {
+          if (matchesTarget(f) && !f.deleted_at) {
+            f.deleted_at = nowIso;
+            f.deleted_by = actor;
+            affectedCount++;
+          }
         });
+        if (affectedCount === 0) return res.status(404).json({ error: `Không tìm thấy biểu mẫu "${formId}".` });
+        writeFormsOffline(forms);
       }
-      writeFormsOffline(filtered);
     }
-    
-    res.json({ success: true, message: `Version ${version} of form ${formId} deleted successfully.` });
+
+    res.json({
+      success: true,
+      softDeleted: !isPermanent,
+      formId,
+      version: version || null,
+      affectedCount,
+      message: isPermanent
+        ? `Permanently deleted ${formId}${version ? ' ' + version : ''}.`
+        : `Moved ${formId}${version ? ' ' + version : ''} to Trash.`
+    });
   } catch (err) {
-    console.error('Error deleting form version:', err);
-    res.status(500).json({ error: 'Failed to delete form version.' });
+    console.error('Error deleting form:', err);
+    res.status(500).json({ error: 'Failed to delete form.' });
   }
 });
 
@@ -1010,6 +1110,7 @@ app.post('/api/forms', async (req, res) => {
     const defaultGuidanceExpanded = req.body.defaultGuidanceExpanded ?? req.body.default_guidance_expanded ?? false;
 
     if (dbPool) {
+      await ensureTrashColumns();
       // If Form ID changed and it was a draft, delete the old draft record and cascade rename
       if (oldFormId && oldFormId !== formId) {
         await dbPool.query(
@@ -1114,6 +1215,8 @@ app.post('/api/forms', async (req, res) => {
           public_permission = EXCLUDED.public_permission,
           default_focus_mode = EXCLUDED.default_focus_mode,
           default_guidance_expanded = EXCLUDED.default_guidance_expanded,
+          deleted_at = NULL,
+          deleted_by = NULL,
           updated_at = NOW()
         RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, pdf_name, pdf_key, pdf_size, created_at, updated_at
       `;
@@ -1297,10 +1400,11 @@ function formatReportRow(r) {
 app.get('/api/reports', async (req, res) => {
   try {
     if (dbPool) {
-      const result = await dbPool.query('SELECT * FROM report_templates ORDER BY updated_at DESC');
+      await ensureTrashColumns();
+      const result = await dbPool.query('SELECT * FROM report_templates WHERE deleted_at IS NULL ORDER BY updated_at DESC');
       res.json(result.rows.map(formatReportRow));
     } else {
-      res.json(readReportsOffline().map(formatReportRow));
+      res.json(readReportsOffline().filter(r => !r.deleted_at).map(formatReportRow));
     }
   } catch (err) {
     console.error('Error fetching report templates:', err);
@@ -1313,9 +1417,10 @@ app.get('/api/reports/by-form/:formId', async (req, res) => {
   try {
     const { formId } = req.params;
     if (dbPool) {
+      await ensureTrashColumns();
       const result = await dbPool.query(
         `SELECT * FROM report_templates 
-         WHERE linked_form_id = $1 
+         WHERE linked_form_id = $1 AND deleted_at IS NULL 
          ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC 
          LIMIT 1`,
         [formId]
@@ -1325,7 +1430,7 @@ app.get('/api/reports/by-form/:formId', async (req, res) => {
       }
       res.json(formatReportRow(result.rows[0]));
     } else {
-      const reports = readReportsOffline().map(formatReportRow);
+      const reports = readReportsOffline().filter(r => !r.deleted_at).map(formatReportRow);
       const matches = reports.filter(r => r.linkedFormId === formId);
       if (matches.length === 0) {
         return res.status(404).json({ error: `No report template found for form ${formId}` });
@@ -1350,7 +1455,8 @@ app.get('/api/reports/:reportId', async (req, res) => {
     const { version } = req.query;
 
     if (dbPool) {
-      let queryStr = 'SELECT * FROM report_templates WHERE report_id = $1';
+      await ensureTrashColumns();
+      let queryStr = 'SELECT * FROM report_templates WHERE report_id = $1 AND deleted_at IS NULL';
       const params = [reportId];
       if (version) {
         queryStr += ' AND version = $2';
@@ -1364,7 +1470,7 @@ app.get('/api/reports/:reportId', async (req, res) => {
       }
       res.json(formatReportRow(result.rows[0]));
     } else {
-      const reports = readReportsOffline().map(formatReportRow);
+      const reports = readReportsOffline().filter(r => !r.deleted_at).map(formatReportRow);
       let matches = reports.filter(r => r.reportId === reportId);
       if (matches.length === 0) {
         return res.status(404).json({ error: `Report template ${reportId} not found` });
@@ -1417,6 +1523,7 @@ app.post('/api/reports', async (req, res) => {
     const effDate = effectiveDate || null;
 
     if (dbPool) {
+      await ensureTrashColumns();
       // If reportId changed in draft mode, delete old draft
       if (oldReportId && oldReportId !== reportId) {
         await dbPool.query("DELETE FROM report_templates WHERE report_id = $1 AND status = 'DRAFT'", [oldReportId]);
@@ -1448,6 +1555,8 @@ app.post('/api/reports', async (req, res) => {
           effective_date = EXCLUDED.effective_date,
           layout_blocks = EXCLUDED.layout_blocks,
           revision_history = EXCLUDED.revision_history,
+          deleted_at = NULL,
+          deleted_by = NULL,
           updated_at = NOW()
         RETURNING *;
       `;
@@ -1493,28 +1602,53 @@ app.post('/api/reports', async (req, res) => {
   }
 });
 
-// DELETE /api/reports/:reportId - Delete report template or specific version
+// DELETE /api/reports/:reportId - Soft-delete report template (or permanent with ?permanent=true)
 app.delete('/api/reports/:reportId', async (req, res) => {
   try {
     const { reportId } = req.params;
-    const { version } = req.query;
+    const { version, permanent, deletedBy } = req.query;
+    const isPermanent = permanent === 'true';
+    const actor = deletedBy || (req.body && req.body.deletedBy) || null;
+    let affectedCount = 0;
 
     if (dbPool) {
-      if (version) {
-        await dbPool.query('DELETE FROM report_templates WHERE report_id = $1 AND version = $2', [reportId, version]);
+      await ensureTrashColumns();
+      let result;
+      if (isPermanent) {
+        result = version
+          ? await dbPool.query('DELETE FROM report_templates WHERE report_id = $1 AND version = $2', [reportId, version])
+          : await dbPool.query('DELETE FROM report_templates WHERE report_id = $1', [reportId]);
       } else {
-        await dbPool.query('DELETE FROM report_templates WHERE report_id = $1', [reportId]);
+        result = version
+          ? await dbPool.query('UPDATE report_templates SET deleted_at = NOW(), deleted_by = $3 WHERE report_id = $1 AND version = $2 AND deleted_at IS NULL', [reportId, version, actor])
+          : await dbPool.query('UPDATE report_templates SET deleted_at = NOW(), deleted_by = $2 WHERE report_id = $1 AND deleted_at IS NULL', [reportId, actor]);
+      }
+      affectedCount = result.rowCount || 0;
+      if (affectedCount === 0) {
+        return res.status(404).json({ error: `Report template ${reportId} not found` });
       }
     } else {
       let reports = readReportsOffline();
-      if (version) {
-        reports = reports.filter(r => !((r.report_id === reportId || r.reportId === reportId) && r.version === version));
+      const matches = (r) => (r.report_id === reportId || r.reportId === reportId) && (!version || r.version === version);
+      if (isPermanent) {
+        const next = reports.filter(r => !matches(r));
+        affectedCount = reports.length - next.length;
+        if (affectedCount === 0) return res.status(404).json({ error: `Report template ${reportId} not found` });
+        writeReportsOffline(next);
       } else {
-        reports = reports.filter(r => !(r.report_id === reportId || r.reportId === reportId));
+        const nowIso = new Date().toISOString();
+        reports.forEach(r => {
+          if (matches(r) && !r.deleted_at) {
+            r.deleted_at = nowIso;
+            r.deleted_by = actor;
+            affectedCount++;
+          }
+        });
+        if (affectedCount === 0) return res.status(404).json({ error: `Report template ${reportId} not found` });
+        writeReportsOffline(reports);
       }
-      writeReportsOffline(reports);
     }
-    res.json({ success: true, message: `Report template ${reportId} deleted successfully` });
+    res.json({ success: true, softDeleted: !isPermanent, reportId, version: version || null, affectedCount });
   } catch (err) {
     console.error('Error deleting report template:', err);
     res.status(500).json({ error: 'Failed to delete report template' });
@@ -1529,7 +1663,8 @@ app.get('/api/processes/check-id', async (req, res) => {
       return res.status(400).json({ error: 'ID parameter is required' });
     }
     if (dbPool) {
-      let queryStr = 'SELECT id FROM processes WHERE (id = $1 OR "parentProcessId" = $1)';
+      await ensureTrashColumns();
+      let queryStr = 'SELECT id FROM processes WHERE (id = $1 OR "parentProcessId" = $1) AND deleted_at IS NULL';
       const params = [id];
       if (exclude) {
         queryStr += ' AND ("parentProcessId" <> $2 AND id <> $2)';
@@ -1553,9 +1688,10 @@ app.get('/api/processes', async (req, res) => {
       res.set('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
     }
     if (dbPool) {
+      await ensureTrashColumns();
       const procQuery = isList
-        ? 'SELECT id, title, description, version, "lastUpdated", "parentProcessId", status, roles, "workflowFormsData", steps, "sopSignoffs", "formFields" FROM processes'
-        : 'SELECT * FROM processes';
+        ? 'SELECT id, title, description, version, "lastUpdated", "parentProcessId", status, roles, "workflowFormsData", steps, "sopSignoffs", "formFields" FROM processes WHERE deleted_at IS NULL'
+        : 'SELECT * FROM processes WHERE deleted_at IS NULL';
       const [result, formsRes] = await Promise.all([
         dbPool.query(procQuery),
         dbPool.query('SELECT * FROM process_forms')
@@ -1594,7 +1730,7 @@ app.get('/api/processes', async (req, res) => {
       
       res.json(processes);
     } else {
-      const processes = await readProcessesFromCSV();
+      const processes = (await readProcessesFromCSV()).filter(p => !p.deleted_at);
       res.json(processes);
     }
   } catch (err) {
@@ -1614,7 +1750,8 @@ app.get('/api/processes/resolve/*identifier', async (req, res) => {
     const targetSlug = toSlug(identifier);
 
     if (dbPool) {
-      const procRes = await dbPool.query('SELECT * FROM processes');
+      await ensureTrashColumns();
+      const procRes = await dbPool.query('SELECT * FROM processes WHERE deleted_at IS NULL');
       const matched = procRes.rows.find(p => 
         (p.id && (p.id.toLowerCase() === identifier.toLowerCase() || toSlug(p.id) === targetSlug)) ||
         (p.title && toSlug(p.title) === targetSlug)
@@ -1640,7 +1777,7 @@ app.get('/api/processes/resolve/*identifier', async (req, res) => {
 
       const [formsRelRes, formsTblRes] = await Promise.all([
         dbPool.query('SELECT * FROM process_forms WHERE process_id = $1', [matched.id]),
-        dbPool.query('SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, updated_at FROM forms ORDER BY updated_at DESC')
+        dbPool.query('SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, updated_at FROM forms WHERE deleted_at IS NULL ORDER BY updated_at DESC')
       ]);
 
       const dbFormsData = matched.workflowFormsData || {};
@@ -1663,7 +1800,7 @@ app.get('/api/processes/resolve/*identifier', async (req, res) => {
         allForms: formsTblRes.rows
       });
     } else {
-      const processes = await readProcessesFromCSV();
+      const processes = (await readProcessesFromCSV()).filter(p => !p.deleted_at);
       const matched = processes.find(p => 
         (p.id && (p.id.toLowerCase() === identifier.toLowerCase() || toSlug(p.id) === targetSlug)) ||
         (p.title && toSlug(p.title) === targetSlug)
@@ -1748,8 +1885,9 @@ app.get('/api/processes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (dbPool) {
+      await ensureTrashColumns();
       const [result, formsRes] = await Promise.all([
-        dbPool.query('SELECT * FROM processes WHERE id = $1', [id]),
+        dbPool.query('SELECT * FROM processes WHERE id = $1 AND deleted_at IS NULL', [id]),
         dbPool.query('SELECT * FROM process_forms WHERE process_id = $1', [id])
       ]);
 
@@ -1774,7 +1912,7 @@ app.get('/api/processes/:id', async (req, res) => {
         workflowFormsData: mergedFormsData
       });
     } else {
-      const processes = await readProcessesFromCSV();
+      const processes = (await readProcessesFromCSV()).filter(p => !p.deleted_at);
       const proc = processes.find(p => p.id === id);
       if (!proc) {
         return res.status(404).json({ error: `Process ${id} not found` });
@@ -2208,49 +2346,62 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
   }
 });
 
-// DELETE /api/processes/:id - Delete a process
+// DELETE /api/processes/:id - Soft-delete a process (or permanent with ?permanent=true)
 app.delete('/api/processes/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    const { permanent, deletedBy } = req.query;
+    const isPermanent = permanent === 'true';
+    const actor = deletedBy || (req.body && req.body.deletedBy) || null;
     let existingProcess = null;
 
     if (dbPool) {
-      const resSelect = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
-      if (resSelect.rows.length > 0) {
-        existingProcess = resSelect.rows[0];
-      }
+      await ensureTrashColumns();
+      if (isPermanent) {
+        const resSelect = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
+        if (resSelect.rows.length > 0) existingProcess = resSelect.rows[0];
 
-      const deleteRes = await dbPool.query('DELETE FROM processes WHERE id = $1', [id]);
-      if (deleteRes.rowCount === 0) {
-        return res.status(404).json({ error: 'Process not found' });
-      }
+        const deleteRes = await dbPool.query('DELETE FROM processes WHERE id = $1', [id]);
+        if (deleteRes.rowCount === 0) {
+          return res.status(404).json({ error: 'Process not found' });
+        }
 
-      if (existingProcess) {
-        const logoKeys = getLogoKeysFromForms(existingProcess.workflowFormsData);
-        for (const key of logoKeys) {
-          await deleteLogoFromR2IfUnused(key);
+        if (existingProcess) {
+          const logoKeys = getLogoKeysFromForms(existingProcess.workflowFormsData);
+          for (const key of logoKeys) {
+            await deleteLogoFromR2IfUnused(key);
+          }
+        }
+      } else {
+        const softRes = await dbPool.query(
+          'UPDATE processes SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL',
+          [id, actor]
+        );
+        if (softRes.rowCount === 0) {
+          return res.status(404).json({ error: 'Process not found' });
         }
       }
-      res.json({ success: true });
+      res.json({ success: true, softDeleted: !isPermanent, id });
     } else {
       // Local CSV mode
       const processes = await readProcessesFromCSV();
       existingProcess = processes.find(p => p.id === id);
-      const filtered = processes.filter(p => p.id !== id);
-      
-      if (processes.length === filtered.length) {
+      if (!existingProcess) {
         return res.status(404).json({ error: 'Process not found' });
       }
-
-      await writeProcessesToCSV(filtered);
-
-      if (existingProcess) {
+      if (isPermanent) {
+        const filtered = processes.filter(p => p.id !== id);
+        await writeProcessesToCSV(filtered);
         const logoKeys = getLogoKeysFromForms(existingProcess.workflowFormsData);
         for (const key of logoKeys) {
           await deleteLogoFromR2IfUnused(key);
         }
+      } else {
+        existingProcess.deleted_at = new Date().toISOString();
+        existingProcess.deleted_by = actor;
+        await writeProcessesToCSV(processes);
       }
-      res.json({ success: true });
+      res.json({ success: true, softDeleted: !isPermanent, id });
     }
   } catch (err) {
     console.error(err);
@@ -2954,6 +3105,7 @@ app.get('/api/submissions', async (req, res) => {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
+    await ensureTrashColumns();
     const result = await dbPool.query(`
       SELECT 
         s.id,
@@ -2977,13 +3129,14 @@ app.get('/api/submissions', async (req, res) => {
       ) pf ON TRUE
       LEFT JOIN LATERAL (
         SELECT id AS process_id FROM processes
-        WHERE id <> 'unlinked'
+        WHERE id <> 'unlinked' AND deleted_at IS NULL
           AND (
             "workflowFormsData" @> jsonb_build_object(s.form_id, '{}')
             OR "workflowFormsData"::text ILIKE '%' || s.form_id || '%'
           )
         LIMIT 1
       ) wfd ON pf.process_id IS NULL
+      WHERE s.deleted_at IS NULL
       ORDER BY s.submitted_at DESC
     `);
     const mappedRows = result.rows.map(row => ({
@@ -3064,7 +3217,7 @@ app.post('/api/submissions/batch-lookup', async (req, res) => {
     const result = await dbPool.query(`
       SELECT id, status, submitted_at, (supervisor_signoff IS NOT NULL) AS signed_off
       FROM submissions
-      WHERE id = ANY($1)
+      WHERE id = ANY($1) AND deleted_at IS NULL
       ORDER BY submitted_at DESC
     `, [validIds]);
 
@@ -3085,10 +3238,11 @@ app.get('/api/submissions/:id', async (req, res) => {
   try {
     if (!dbPool) return res.status(503).json({ error: 'Database not available' });
     const { id } = req.params;
+    await ensureTrashColumns();
     const result = await dbPool.query(
       `SELECT id, process_id, form_id, form_version, operator_id,
               status, submitted_at, form_data, media_urls, supervisor_signoff, access_token
-       FROM submissions WHERE id = $1`,
+       FROM submissions WHERE id = $1 AND deleted_at IS NULL`,
       [id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
@@ -3123,6 +3277,7 @@ app.get('/api/submissions/view/:id', async (req, res) => {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
+    await ensureTrashColumns();
     const { id } = req.params;
     const result = await dbPool.query(
       `SELECT s.id, s.process_id, s.form_id, s.form_version, s.operator_id,
@@ -3132,7 +3287,7 @@ app.get('/api/submissions/view/:id', async (req, res) => {
        FROM submissions s
        LEFT JOIN forms f ON (f.form_id = s.form_id OR f.form_name = s.form_id)
          AND f.version = s.form_version
-       WHERE s.id = $1`,
+       WHERE s.id = $1 AND s.deleted_at IS NULL`,
       [id]
     );
 
@@ -3142,10 +3297,10 @@ app.get('/api/submissions/view/:id', async (req, res) => {
         `SELECT s.id, s.process_id, s.form_id, s.form_version, s.operator_id,
                 s.status, s.submitted_at, s.form_data, s.media_urls, s.supervisor_signoff,
                 f.form_name, f.form_title, f.layout_blocks, f.page_size, f.is_public,
-                f.default_focus_mode, f.version AS form_current_version
+                f.default_focus_mode, f.default_guidance_expanded, f.version AS form_current_version
          FROM submissions s
          LEFT JOIN forms f ON (f.form_id = s.form_id OR f.form_name = s.form_id)
-         WHERE s.id = $1
+         WHERE s.id = $1 AND s.deleted_at IS NULL
          ORDER BY f.updated_at DESC NULLS LAST
          LIMIT 1`,
         [id]
@@ -3205,8 +3360,9 @@ app.get('/api/reports/view/:submissionId', async (req, res) => {
   try {
     if (!dbPool) return res.status(503).json({ error: 'Database not available' });
     const { submissionId } = req.params;
+    await ensureTrashColumns();
     const subRes = await dbPool.query(
-      `SELECT * FROM submissions WHERE id = $1`,
+      `SELECT * FROM submissions WHERE id = $1 AND deleted_at IS NULL`,
       [submissionId]
     );
     if (subRes.rows.length === 0) return res.status(404).json({ error: 'Submission not found' });
@@ -3268,10 +3424,11 @@ app.get('/api/reports/view-auth/:submissionId', async (req, res) => {
 
     const { submissionId } = req.params;
     // Step A: fetch submission
+    await ensureTrashColumns();
     const subResult = await dbPool.query(
       `SELECT id, process_id, form_id, form_version, operator_id,
               status, submitted_at, form_data, media_urls, supervisor_signoff, access_token
-       FROM submissions WHERE id = $1`,
+       FROM submissions WHERE id = $1 AND deleted_at IS NULL`,
       [submissionId]
     );
     if (subResult.rows.length === 0) return res.status(404).json({ error: 'Submission not found' });
@@ -3450,68 +3607,79 @@ app.put('/api/submissions/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/submissions/:id - Delete a submission record and associated R2 media (Admin only)
+// Shared R2 media purge helper for permanent submission deletion
+async function purgeSubmissionMediaFromR2(media_urls, form_data, id) {
+  const keysToDelete = new Set();
+  const parsedUrls = typeof media_urls === 'string' ? JSON.parse(media_urls || '[]') : (media_urls || []);
+  if (Array.isArray(parsedUrls)) {
+    for (const u of parsedUrls) {
+      if (typeof u === 'string' && u.startsWith('uploads/')) {
+        keysToDelete.add(u);
+      }
+    }
+  }
+  const fdStr = typeof form_data === 'string' ? form_data : JSON.stringify(form_data || {});
+  const matches = fdStr.match(/uploads\/[^\s"',\\]+/g);
+  if (matches) {
+    for (const m of matches) {
+      if (!m.startsWith('uploads/logo_')) {
+        keysToDelete.add(m);
+      }
+    }
+  }
+  let deletedMediaCount = 0;
+  if (r2Client && keysToDelete.size > 0) {
+    for (const key of keysToDelete) {
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: key
+        }));
+        deletedMediaCount++;
+        console.log(`[Storage GC] Deleted R2 object ${key} for submission ${id}`);
+      } catch (s3Err) {
+        console.error(`[Storage GC] Failed to delete R2 object ${key}:`, s3Err.message);
+      }
+    }
+  }
+  return deletedMediaCount;
+}
+
+// DELETE /api/submissions/:id - Soft-delete submission (preserves R2 media), or hard-delete with ?permanent=true
 app.delete('/api/submissions/:id', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
+    await ensureTrashColumns();
     const { id } = req.params;
+    const { permanent, deletedBy } = req.query;
+    const isPermanent = permanent === 'true';
+    const actor = deletedBy || (req.body && req.body.deletedBy) || null;
 
-    // 1. Fetch submission media to delete physical files from R2
-    const subRes = await dbPool.query(`
-      SELECT media_urls, form_data FROM submissions WHERE id = $1
-    `, [id]);
+    if (!isPermanent) {
+      const softRes = await dbPool.query(
+        `UPDATE submissions SET deleted_at = NOW(), deleted_by = $2 WHERE id = $1 AND deleted_at IS NULL`,
+        [id, actor]
+      );
+      if (softRes.rowCount === 0) {
+        return res.status(404).json({ error: 'Submission record not found.' });
+      }
+      return res.json({ success: true, softDeleted: true, id, deletedMediaCount: 0 });
+    }
 
+    const subRes = await dbPool.query(
+      `SELECT media_urls, form_data FROM submissions WHERE id = $1`,
+      [id]
+    );
     if (subRes.rows.length === 0) {
       return res.status(404).json({ error: 'Submission record not found.' });
     }
-
     const { media_urls, form_data } = subRes.rows[0];
-    const keysToDelete = new Set();
-
-    // Collect keys from media_urls
-    const parsedUrls = typeof media_urls === 'string' ? JSON.parse(media_urls || '[]') : (media_urls || []);
-    if (Array.isArray(parsedUrls)) {
-      for (const u of parsedUrls) {
-        if (typeof u === 'string' && u.startsWith('uploads/')) {
-          keysToDelete.add(u);
-        }
-      }
-    }
-
-    // Collect keys from form_data
-    const fdStr = typeof form_data === 'string' ? form_data : JSON.stringify(form_data || {});
-    const matches = fdStr.match(/uploads\/[^\s"',\\]+/g);
-    if (matches) {
-      for (const m of matches) {
-        if (!m.startsWith('uploads/logo_')) {
-          keysToDelete.add(m);
-        }
-      }
-    }
-
-    // 2. Delete submission from database
     await dbPool.query(`DELETE FROM submissions WHERE id = $1`, [id]);
+    const deletedMediaCount = await purgeSubmissionMediaFromR2(media_urls, form_data, id);
 
-    // 3. Delete physical files from R2
-    let deletedMediaCount = 0;
-    if (r2Client && keysToDelete.size > 0) {
-      for (const key of keysToDelete) {
-        try {
-          await r2Client.send(new DeleteObjectCommand({
-            Bucket: R2_BUCKET_NAME,
-            Key: key
-          }));
-          deletedMediaCount++;
-          console.log(`[Storage GC] Deleted R2 object ${key} for submission ${id}`);
-        } catch (s3Err) {
-          console.error(`[Storage GC] Failed to delete R2 object ${key}:`, s3Err.message);
-        }
-      }
-    }
-
-    res.json({ success: true, id, deletedMediaCount });
+    res.json({ success: true, softDeleted: false, id, deletedMediaCount });
   } catch (err) {
     console.error('Error deleting submission:', err);
     res.status(500).json({ error: 'Failed to delete submission record.' });
@@ -3954,6 +4122,439 @@ app.get('/api/utils/unshorten-map', async (req, res) => {
   } catch (err) {
     console.error('[unshorten-map] Error:', err);
     return res.status(500).json({ error: 'Failed to resolve location' });
+  }
+});
+
+// ─── API SYSTEM TRASH (RECYCLE BIN) ───────────────────────────────────────────
+
+function countSubmissionMedia(mediaUrlsRaw) {
+  try {
+    const arr = typeof mediaUrlsRaw === 'string' ? JSON.parse(mediaUrlsRaw || '[]') : (mediaUrlsRaw || []);
+    return Array.isArray(arr) ? arr.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function fetchGroupedTrashData(typeFilter = 'all') {
+  const items = [];
+  const counts = { total: 0, process: 0, form: 0, submission: 0, report: 0 };
+
+  if (dbPool) {
+    await ensureTrashColumns();
+    const [procRes, formRes, activeFormIdsRes, subRes, repRes] = await Promise.all([
+      dbPool.query('SELECT id, title, version, status, deleted_at, deleted_by, "parentProcessId" FROM processes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'),
+      dbPool.query('SELECT form_id, form_name, form_title, status, version, deleted_at, deleted_by FROM forms WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'),
+      dbPool.query('SELECT DISTINCT form_id FROM forms WHERE deleted_at IS NULL'),
+      dbPool.query('SELECT id, process_id, form_id, form_version, operator_id, status, media_urls, deleted_at, deleted_by FROM submissions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'),
+      dbPool.query('SELECT report_id, report_title, linked_form_id, status, version, deleted_at, deleted_by FROM report_templates WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC')
+    ]);
+
+    const activeFormIdSet = new Set(activeFormIdsRes.rows.map(r => r.form_id));
+    const trashedFormsById = new Map();
+    for (const row of formRes.rows) {
+      if (!trashedFormsById.has(row.form_id)) trashedFormsById.set(row.form_id, []);
+      trashedFormsById.get(row.form_id).push(row);
+    }
+
+    const formItems = [];
+    for (const [fId, rows] of trashedFormsById.entries()) {
+      if (activeFormIdSet.has(fId)) {
+        for (const r of rows) {
+          formItems.push({
+            entityType: 'form',
+            id: r.form_id,
+            title: r.form_title || r.form_name || r.form_id,
+            subtitle: `Phiên bản lẻ: ${r.version} (${r.status || 'DRAFT'})`,
+            version: r.version,
+            isPartialVersion: true,
+            status: r.status,
+            deletedAt: r.deleted_at,
+            deletedBy: r.deleted_by || null,
+            meta: { formId: r.form_id }
+          });
+        }
+      } else {
+        const sorted = [...rows].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+        const latest = sorted[0];
+        const versions = sorted.map(r => r.version);
+        formItems.push({
+          entityType: 'form',
+          id: fId,
+          title: latest.form_title || latest.form_name || fId,
+          subtitle: `Toàn bộ biểu mẫu (${versions.join(', ')})`,
+          versions,
+          isPartialVersion: false,
+          status: latest.status,
+          deletedAt: latest.deleted_at,
+          deletedBy: latest.deleted_by || null,
+          meta: { formId: fId }
+        });
+      }
+    }
+
+    const procItems = procRes.rows.map(p => ({
+      entityType: 'process',
+      id: p.id,
+      title: p.title || p.id,
+      subtitle: `Phiên bản V${p.version || '1'} (${p.status || 'Draft'})`,
+      version: p.version,
+      status: p.status,
+      deletedAt: p.deleted_at,
+      deletedBy: p.deleted_by || null,
+      meta: { processId: p.parentProcessId || p.id }
+    }));
+
+    const subItems = subRes.rows.map(s => {
+      const mediaCount = countSubmissionMedia(s.media_urls);
+      return {
+        entityType: 'submission',
+        id: s.id,
+        title: `${s.form_id}${s.form_version ? ` (${s.form_version})` : ''}`,
+        subtitle: `Điền bởi: ${s.operator_id}${mediaCount > 0 ? ` • ${mediaCount} ảnh` : ''}`,
+        version: s.form_version,
+        status: s.status,
+        deletedAt: s.deleted_at,
+        deletedBy: s.deleted_by || null,
+        meta: { operatorId: s.operator_id, formId: s.form_id, mediaCount, processId: s.process_id }
+      };
+    });
+
+    const repItems = repRes.rows.map(r => ({
+      entityType: 'report',
+      id: r.report_id,
+      title: r.report_title || r.report_id,
+      subtitle: `Nguồn: ${r.linked_form_id} (${r.version})`,
+      version: r.version,
+      status: r.status,
+      deletedAt: r.deleted_at,
+      deletedBy: r.deleted_by || null,
+      meta: { linkedFormId: r.linked_form_id }
+    }));
+
+    counts.process = procItems.length;
+    counts.form = formItems.length;
+    counts.submission = subItems.length;
+    counts.report = repItems.length;
+    counts.total = counts.process + counts.form + counts.submission + counts.report;
+
+    if (typeFilter === 'all' || typeFilter === 'process') items.push(...procItems);
+    if (typeFilter === 'all' || typeFilter === 'form') items.push(...formItems);
+    if (typeFilter === 'all' || typeFilter === 'submission') items.push(...subItems);
+    if (typeFilter === 'all' || typeFilter === 'report') items.push(...repItems);
+  } else {
+    const procs = (await readProcessesFromCSV()).filter(p => Boolean(p.deleted_at));
+    const allForms = readFormsOffline();
+    const trashedForms = allForms.filter(f => Boolean(f.deleted_at));
+    const activeFormIdSet = new Set(allForms.filter(f => !f.deleted_at).map(f => f.form_id));
+    const reports = readReportsOffline().filter(r => Boolean(r.deleted_at));
+
+    const trashedFormsById = new Map();
+    for (const row of trashedForms) {
+      if (!trashedFormsById.has(row.form_id)) trashedFormsById.set(row.form_id, []);
+      trashedFormsById.get(row.form_id).push(row);
+    }
+    const formItems = [];
+    for (const [fId, rows] of trashedFormsById.entries()) {
+      if (activeFormIdSet.has(fId)) {
+        for (const r of rows) {
+          formItems.push({
+            entityType: 'form',
+            id: r.form_id,
+            title: r.form_title || r.form_name || r.form_id,
+            subtitle: `Phiên bản lẻ: ${r.version} (${r.status || 'DRAFT'})`,
+            version: r.version,
+            isPartialVersion: true,
+            status: r.status,
+            deletedAt: r.deleted_at,
+            deletedBy: r.deleted_by || null,
+            meta: { formId: r.form_id }
+          });
+        }
+      } else {
+        const sorted = [...rows].sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+        const latest = sorted[0];
+        const versions = sorted.map(r => r.version);
+        formItems.push({
+          entityType: 'form',
+          id: fId,
+          title: latest.form_title || latest.form_name || fId,
+          subtitle: `Toàn bộ biểu mẫu (${versions.join(', ')})`,
+          versions,
+          isPartialVersion: false,
+          status: latest.status,
+          deletedAt: latest.deleted_at,
+          deletedBy: latest.deleted_by || null,
+          meta: { formId: fId }
+        });
+      }
+    }
+
+    const procItems = procs.map(p => ({
+      entityType: 'process',
+      id: p.id,
+      title: p.title || p.id,
+      subtitle: `Phiên bản V${p.version || '1'} (${p.status || 'Draft'})`,
+      version: p.version,
+      status: p.status,
+      deletedAt: p.deleted_at,
+      deletedBy: p.deleted_by || null,
+      meta: { processId: p.parentProcessId || p.id }
+    }));
+
+    const repItems = reports.map(r => ({
+      entityType: 'report',
+      id: r.report_id || r.reportId,
+      title: r.report_title || r.reportTitle || r.report_id,
+      subtitle: `Nguồn: ${r.linked_form_id || r.linkedFormId} (${r.version})`,
+      version: r.version,
+      status: r.status,
+      deletedAt: r.deleted_at,
+      deletedBy: r.deleted_by || null,
+      meta: { linkedFormId: r.linked_form_id || r.linkedFormId }
+    }));
+
+    counts.process = procItems.length;
+    counts.form = formItems.length;
+    counts.submission = 0;
+    counts.report = repItems.length;
+    counts.total = counts.process + counts.form + counts.report;
+
+    if (typeFilter === 'all' || typeFilter === 'process') items.push(...procItems);
+    if (typeFilter === 'all' || typeFilter === 'form') items.push(...formItems);
+    if (typeFilter === 'all' || typeFilter === 'report') items.push(...repItems);
+  }
+
+  items.sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
+  return { items, counts };
+}
+
+// GET /api/trash/count - Lightweight counts across all entity types
+app.get('/api/trash/count', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const { counts } = await fetchGroupedTrashData('all');
+    res.json(counts);
+  } catch (err) {
+    console.error('Error counting trash items:', err);
+    res.status(500).json({ error: 'Failed to count trash items' });
+  }
+});
+
+// GET /api/trash - Unified system trash items sorted newest-deleted first
+app.get('/api/trash', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    const typeFilter = req.query.type || 'all';
+    const data = await fetchGroupedTrashData(typeFilter);
+    res.json(data);
+  } catch (err) {
+    console.error('Error listing trash items:', err);
+    res.status(500).json({ error: 'Failed to list trash items' });
+  }
+});
+
+// POST /api/trash/restore - Restore a soft-deleted entity from Trash
+app.post('/api/trash/restore', async (req, res) => {
+  try {
+    const { entityType, id, version } = req.body || {};
+    if (!entityType || !id) {
+      return res.status(400).json({ error: 'Missing entityType or id' });
+    }
+
+    let restoredCount = 0;
+    if (dbPool) {
+      await ensureTrashColumns();
+      if (entityType === 'process') {
+        const r = await dbPool.query('UPDATE processes SET deleted_at = NULL, deleted_by = NULL WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+        restoredCount = r.rowCount || 0;
+      } else if (entityType === 'form') {
+        const r = version
+          ? await dbPool.query('UPDATE forms SET deleted_at = NULL, deleted_by = NULL WHERE form_id = $1 AND version = $2 AND deleted_at IS NOT NULL', [id, version])
+          : await dbPool.query('UPDATE forms SET deleted_at = NULL, deleted_by = NULL WHERE form_id = $1 AND deleted_at IS NOT NULL', [id]);
+        restoredCount = r.rowCount || 0;
+      } else if (entityType === 'submission') {
+        const r = await dbPool.query('UPDATE submissions SET deleted_at = NULL, deleted_by = NULL WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+        restoredCount = r.rowCount || 0;
+      } else if (entityType === 'report') {
+        const r = version
+          ? await dbPool.query('UPDATE report_templates SET deleted_at = NULL, deleted_by = NULL WHERE report_id = $1 AND version = $2 AND deleted_at IS NOT NULL', [id, version])
+          : await dbPool.query('UPDATE report_templates SET deleted_at = NULL, deleted_by = NULL WHERE report_id = $1 AND deleted_at IS NOT NULL', [id]);
+        restoredCount = r.rowCount || 0;
+      } else {
+        return res.status(400).json({ error: 'Unsupported entityType' });
+      }
+    } else {
+      if (entityType === 'process') {
+        const procs = await readProcessesFromCSV();
+        procs.forEach(p => {
+          if (p.id === id && p.deleted_at) { p.deleted_at = null; p.deleted_by = null; restoredCount++; }
+        });
+        if (restoredCount > 0) await writeProcessesToCSV(procs);
+      } else if (entityType === 'form') {
+        const forms = readFormsOffline();
+        forms.forEach(f => {
+          if (f.form_id === id && (!version || f.version === version) && f.deleted_at) {
+            f.deleted_at = null; f.deleted_by = null; restoredCount++;
+          }
+        });
+        if (restoredCount > 0) writeFormsOffline(forms);
+      } else if (entityType === 'report') {
+        const reps = readReportsOffline();
+        reps.forEach(r => {
+          if ((r.report_id === id || r.reportId === id) && (!version || r.version === version) && r.deleted_at) {
+            r.deleted_at = null; r.deleted_by = null; restoredCount++;
+          }
+        });
+        if (restoredCount > 0) writeReportsOffline(reps);
+      }
+    }
+
+    if (restoredCount === 0) {
+      return res.status(404).json({ error: 'Trashed item not found' });
+    }
+    res.json({ success: true, entityType, id, version: version || null, restoredCount });
+  } catch (err) {
+    console.error('Error restoring item from trash:', err);
+    res.status(500).json({ error: 'Failed to restore item from trash' });
+  }
+});
+
+// DELETE /api/trash/permanent - Permanently delete a single trashed item (Admin only)
+app.delete('/api/trash/permanent', async (req, res) => {
+  try {
+    const entityType = req.body?.entityType || req.query.entityType;
+    const id = req.body?.id || req.query.id;
+    const version = req.body?.version || req.query.version;
+    if (!entityType || !id) {
+      return res.status(400).json({ error: 'Missing entityType or id' });
+    }
+
+    let deletedCount = 0;
+    if (dbPool) {
+      await ensureTrashColumns();
+      if (entityType === 'process') {
+        const sel = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+        if (sel.rows.length > 0) {
+          const del = await dbPool.query('DELETE FROM processes WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+          deletedCount = del.rowCount || 0;
+          const logoKeys = getLogoKeysFromForms(sel.rows[0].workflowFormsData);
+          for (const key of logoKeys) await deleteLogoFromR2IfUnused(key);
+        }
+      } else if (entityType === 'form') {
+        const del = version
+          ? await dbPool.query('DELETE FROM forms WHERE form_id = $1 AND version = $2 AND deleted_at IS NOT NULL', [id, version])
+          : await dbPool.query('DELETE FROM forms WHERE form_id = $1 AND deleted_at IS NOT NULL', [id]);
+        deletedCount = del.rowCount || 0;
+      } else if (entityType === 'submission') {
+        const sel = await dbPool.query('SELECT media_urls, form_data FROM submissions WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+        if (sel.rows.length > 0) {
+          const del = await dbPool.query('DELETE FROM submissions WHERE id = $1 AND deleted_at IS NOT NULL', [id]);
+          deletedCount = del.rowCount || 0;
+          await purgeSubmissionMediaFromR2(sel.rows[0].media_urls, sel.rows[0].form_data, id);
+        }
+      } else if (entityType === 'report') {
+        const del = version
+          ? await dbPool.query('DELETE FROM report_templates WHERE report_id = $1 AND version = $2 AND deleted_at IS NOT NULL', [id, version])
+          : await dbPool.query('DELETE FROM report_templates WHERE report_id = $1 AND deleted_at IS NOT NULL', [id]);
+        deletedCount = del.rowCount || 0;
+      } else {
+        return res.status(400).json({ error: 'Unsupported entityType' });
+      }
+    } else {
+      if (entityType === 'process') {
+        const procs = await readProcessesFromCSV();
+        const target = procs.find(p => p.id === id && p.deleted_at);
+        if (target) {
+          const next = procs.filter(p => !(p.id === id && p.deleted_at));
+          deletedCount = procs.length - next.length;
+          await writeProcessesToCSV(next);
+          const logoKeys = getLogoKeysFromForms(target.workflowFormsData);
+          for (const key of logoKeys) await deleteLogoFromR2IfUnused(key);
+        }
+      } else if (entityType === 'form') {
+        const forms = readFormsOffline();
+        const next = forms.filter(f => !(f.form_id === id && (!version || f.version === version) && f.deleted_at));
+        deletedCount = forms.length - next.length;
+        if (deletedCount > 0) writeFormsOffline(next);
+      } else if (entityType === 'report') {
+        const reps = readReportsOffline();
+        const next = reps.filter(r => !((r.report_id === id || r.reportId === id) && (!version || r.version === version) && r.deleted_at));
+        deletedCount = reps.length - next.length;
+        if (deletedCount > 0) writeReportsOffline(next);
+      }
+    }
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: 'Trashed item not found' });
+    }
+    res.json({ success: true, entityType, id, version: version || null, deletedCount });
+  } catch (err) {
+    console.error('Error permanently deleting trash item:', err);
+    res.status(500).json({ error: 'Failed to permanently delete trash item' });
+  }
+});
+
+// DELETE /api/trash/empty - Permanently empty all trashed items (Admin only, optional ?type=...)
+app.delete('/api/trash/empty', async (req, res) => {
+  try {
+    const typeFilter = req.query.type || 'all';
+    let deletedCount = 0;
+
+    if (dbPool) {
+      await ensureTrashColumns();
+      if (typeFilter === 'all' || typeFilter === 'submission') {
+        const trashedSubs = await dbPool.query('SELECT id, media_urls, form_data FROM submissions WHERE deleted_at IS NOT NULL');
+        if (trashedSubs.rows.length > 0) {
+          await dbPool.query('DELETE FROM submissions WHERE deleted_at IS NOT NULL');
+          deletedCount += trashedSubs.rows.length;
+          for (const s of trashedSubs.rows) {
+            await purgeSubmissionMediaFromR2(s.media_urls, s.form_data, s.id);
+          }
+        }
+      }
+      if (typeFilter === 'all' || typeFilter === 'form') {
+        const delForms = await dbPool.query('DELETE FROM forms WHERE deleted_at IS NOT NULL');
+        deletedCount += delForms.rowCount || 0;
+      }
+      if (typeFilter === 'all' || typeFilter === 'report') {
+        const delReps = await dbPool.query('DELETE FROM report_templates WHERE deleted_at IS NOT NULL');
+        deletedCount += delReps.rowCount || 0;
+      }
+      if (typeFilter === 'all' || typeFilter === 'process') {
+        const trashedProcs = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE deleted_at IS NOT NULL');
+        const delProcs = await dbPool.query('DELETE FROM processes WHERE deleted_at IS NOT NULL');
+        deletedCount += delProcs.rowCount || 0;
+        for (const p of trashedProcs.rows) {
+          const logoKeys = getLogoKeysFromForms(p.workflowFormsData);
+          for (const key of logoKeys) await deleteLogoFromR2IfUnused(key);
+        }
+      }
+    } else {
+      if (typeFilter === 'all' || typeFilter === 'form') {
+        const forms = readFormsOffline();
+        const next = forms.filter(f => !f.deleted_at);
+        deletedCount += forms.length - next.length;
+        writeFormsOffline(next);
+      }
+      if (typeFilter === 'all' || typeFilter === 'report') {
+        const reps = readReportsOffline();
+        const next = reps.filter(r => !r.deleted_at);
+        deletedCount += reps.length - next.length;
+        writeReportsOffline(next);
+      }
+      if (typeFilter === 'all' || typeFilter === 'process') {
+        const procs = await readProcessesFromCSV();
+        const next = procs.filter(p => !p.deleted_at);
+        deletedCount += procs.length - next.length;
+        await writeProcessesToCSV(next);
+      }
+    }
+
+    res.json({ success: true, type: typeFilter, deletedCount });
+  } catch (err) {
+    console.error('Error emptying trash:', err);
+    res.status(500).json({ error: 'Failed to empty trash' });
   }
 });
 

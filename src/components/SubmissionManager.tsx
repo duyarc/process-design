@@ -18,7 +18,8 @@ import {
   ChevronRight,
   MoreHorizontal,
   PenTool,
-  Share2
+  Share2,
+  RotateCcw
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -41,6 +42,7 @@ interface SubmissionManagerProps {
   onOpenReportBuilder?: (formId: string) => void;
   onViewingChange?: (isViewing: boolean) => void;
   onOpenFormFiller?: (processId: string, formName: string) => void;
+  onTrashChanged?: () => void;
 }
 
 export default function SubmissionManager({ 
@@ -56,7 +58,8 @@ export default function SubmissionManager({
   onOpenReport, 
   onOpenReportBuilder, 
   onViewingChange, 
-  onOpenFormFiller 
+  onOpenFormFiller,
+  onTrashChanged
 }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
@@ -145,7 +148,7 @@ export default function SubmissionManager({
   const [deleting, setDeleting] = useState(false);
 
   // Toast and Error States
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; undoId?: string } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Copy shareable link to form
@@ -164,7 +167,7 @@ export default function SubmissionManager({
   // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 4000);
+    const timer = setTimeout(() => setToast(null), toast.undoId ? 5000 : 4000);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -485,28 +488,56 @@ export default function SubmissionManager({
     }
   };
 
-  // Delete submission record handler
+  // Delete submission record handler (soft delete -> Trash, preserves R2 media)
   const handleDeleteSubmission = async () => {
     if (!submissionToDelete) return;
+    const targetId = submissionToDelete.id;
+    const actor = currentUser?.full_name || currentUser?.username || '';
+    const qs = actor ? `?deletedBy=${encodeURIComponent(actor)}` : '';
     try {
       setDeleting(true);
-      const res = await fetch(`/api/submissions/${submissionToDelete.id}`, {
+      const res = await fetch(`/api/submissions/${encodeURIComponent(targetId)}${qs}`, {
         method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete submission');
 
       // Clear selected submission if it is the deleted one
-      if (selectedSubmission && selectedSubmission.id === submissionToDelete.id) {
+      if (selectedSubmission && selectedSubmission.id === targetId) {
         setSelectedSubmission(null);
       }
+      setSubmissions(prev => {
+        const next = prev.filter(s => s.id !== targetId);
+        try { sessionStorage.setItem('swr_submissions', JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
       setSubmissionToDelete(null);
-      setToast({ message: 'Đã xóa bản ghi phiếu thành công!', type: 'success' });
-      await fetchData();
+      onTrashChanged?.();
+      setToast({ message: `Đã chuyển bản ghi ${targetId} vào Thùng rác.`, type: 'success', undoId: targetId });
+      await fetchData(true);
     } catch (err) {
       console.error(err);
-      setToast({ message: 'Lỗi khi xóa bản ghi phiếu.', type: 'error' });
+      setToast({ message: 'Lỗi khi chuyển bản ghi vào Thùng rác.', type: 'error' });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleUndoDeleteSubmission = async () => {
+    const undoId = toast?.undoId;
+    if (!undoId) return;
+    try {
+      const res = await fetch('/api/trash/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityType: 'submission', id: undoId })
+      });
+      if (!res.ok) throw new Error('Không thể hoàn tác');
+      setToast({ message: 'Đã khôi phục bản ghi thành công!', type: 'success' });
+      onTrashChanged?.();
+      await fetchData(true);
+    } catch (err) {
+      console.error(err);
+      setToast({ message: 'Lỗi khi hoàn tác bản ghi.', type: 'error' });
     }
   };
 
@@ -1402,23 +1433,25 @@ export default function SubmissionManager({
 
       <ConfirmModal
         isOpen={!!submissionToDelete}
-        title="Xác nhận xóa bản ghi"
+        title="Chuyển bản ghi vào Thùng rác?"
         message={
           submissionToDelete ? (
             <div>
-              Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi này không?
+              Bản ghi này sẽ được chuyển vào <strong>Thùng rác</strong> để lưu giữ an toàn.
               <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
                 <strong>ID:</strong> {submissionToDelete.id}<br />
                 <strong>Operator:</strong> {submissionToDelete.operatorId}<br />
                 <strong>Ngày gửi:</strong> {new Date(submissionToDelete.submittedAt).toLocaleString('vi-VN')}
               </div>
-              <p style={{ margin: '0.5rem 0 0', color: 'var(--danger)', fontWeight: 500 }}>* Hành động này không thể hoàn tác.</p>
+              <p style={{ margin: '0.5rem 0 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                * Toàn bộ ảnh bằng chứng đính kèm được giữ nguyên và có thể khôi phục bất kỳ lúc nào từ Thùng rác.
+              </p>
             </div>
           ) : ''
         }
-        confirmText="Xóa vĩnh viễn"
+        confirmText="Chuyển vào thùng rác"
         cancelText="Hủy"
-        variant="danger"
+        variant="warning"
         loading={deleting}
         onConfirm={handleDeleteSubmission}
         onCancel={() => setSubmissionToDelete(null)}
@@ -1447,6 +1480,28 @@ export default function SubmissionManager({
         >
           {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
           <span>{toast.message}</span>
+          {toast.undoId && (
+            <button
+              type="button"
+              onClick={handleUndoDeleteSubmission}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                background: 'rgba(255,255,255,0.16)',
+                border: '1px solid rgba(255,255,255,0.32)',
+                color: '#ffffff',
+                borderRadius: '5px',
+                padding: '0.2rem 0.5rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <RotateCcw size={12} />
+              <span>Hoàn tác</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setToast(null)}

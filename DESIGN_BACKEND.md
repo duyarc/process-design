@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.3 |
-| **Verified At Commit** | (2026-11-05) — Process resolve & bulk share API, forms public_permission schema migration verified against source |
+| **Verified At Commit** | (2026-11-26) — System-wide soft delete (`deleted_at`, `deleted_by`), `ensureTrashColumns()`, unified `/api/trash/*` endpoints & R2 GC protection verified against source |
 
 ### Quick File Index
 
@@ -301,3 +301,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-11-04 | CURRENT | **Form Resolve Payload Attachment (`server.cjs`):** Added full formTemplate JSON payload to `GET /api/forms/resolve/*identifier`. |
 | 2026-11-04 | CURRENT | **Process List Roles Restoration (`server.cjs`):** Restored roles and formFields in `GET /api/processes?fields=list`. |
 | 2026-11-05 | CURRENT | **Process & Form Sharing Endpoints & Schema Migration (`server.cjs`):** (1) Added `is_public BOOLEAN DEFAULT false` to `processes` table and `public_permission TEXT DEFAULT 'fill'` to `forms` table in schema initialization and idempotent `ALTER TABLE` migrations. (2) Added public `GET /api/processes/resolve/*identifier` endpoint resolving processes by ID or slug, guarding private processes with 403 (with Bearer auth pass-through for logged-in staff), and bundling attached forms metadata. (3) Added protected `PATCH /api/processes/:id/share` endpoint bulk-updating process public state and attached forms `is_public` and `public_permission`. (4) Updated `GET /api/forms/resolve/*identifier` to reflect authoritative DB `is_public` and `public_permission`. |
+| 2026-11-26 | CURRENT | **System-Wide Soft Delete & Recycle Bin (`server.cjs`):** (1) Added `deleted_at` and `deleted_by` columns across `processes`, `forms`, `submissions`, and `report_templates` with Vercel-safe lazy migration `ensureTrashColumns()` + CSV/JSON offline parity. (2) Upgraded all 4 `DELETE` endpoints to soft-delete by default (supporting `?permanent=true`), filtering active read/resolve routes with `deleted_at IS NULL` while keeping `isLogoKeyUsed()`, `orphaned-media` GC, `generateDailySequentialSubmissionId()`, and historical submission joins inclusive so trashed media and records remain protected. (3) Added `fetchGroupedTrashData()`, `purgeSubmissionMediaFromR2()`, `GET /api/trash`, `GET /api/trash/count`, `POST /api/trash/restore`, `DELETE /api/trash/permanent`, and `DELETE /api/trash/empty`. |

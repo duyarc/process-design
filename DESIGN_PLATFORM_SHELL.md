@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-11-04) — Code Splitting via React.lazy on heavy designer modules & preloadedFormTemplate pass-through verified against source |
+| **Verified At Commit** | (2026-11-26) — System-wide Recycle Bin (`viewMode='trash'`, `SystemTrashView`), Dashboard soft-delete + Undo Toast & 2-tier permissions verified against source |
 
 ### Quick File Index
 
@@ -18,6 +18,7 @@
 | [`src/App.tsx`](src/App.tsx) | Main orchestrator, routing, layout shell |
 | [`src/components/Dashboard.tsx`](src/components/Dashboard.tsx) | Landing page containing hub views (Processes, Forms, Submissions, Guide) |
 | [`src/components/common/DashboardToolbar.tsx`](src/components/common/DashboardToolbar.tsx) | Shared toolbar with search input, quick-clear button, filters slot, and actions slot |
+| [`src/components/common/SystemTrashView.tsx`](src/components/common/SystemTrashView.tsx) | Unified system-wide Recycle Bin table with entity filters, 1-click restore, and Admin-only permanent delete |
 | [`src/components/LoginPage.tsx`](src/components/LoginPage.tsx) | Authentication UI (Credentials & Google OAuth) |
 | [`src/components/UserManagement.tsx`](src/components/UserManagement.tsx) | User administration and Role matrix view |
 | [`src/context/AuthContext.tsx`](src/context/AuthContext.tsx) | Auth logic, JWT storage, RBAC definitions |
@@ -225,3 +226,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-11-03 | CURRENT | **Forms Tab Loading Performance & Memoized Link Resolution (`Dashboard.tsx`):** (1) Updated `fetchProcesses` to request `?fields=list` from `/api/forms` and `/api/processes`, eliminating multi-MB payload transfer on dashboard load. (2) Precomputed `activeProcsWithFormIds` Set map once via `useMemo`, eliminating `O(Forms × Processes × Versions)` render hot loop and 1,800+ repeated `JSON.parse` operations. (3) Memoized `formsGroupedById`, `formsList`, and `filteredFormsList`. (4) Eradicated dead code: double `JSON.parse` of `layout_blocks` for unused `blocksCount` and `blockTypes`. (5) Added safe fallback in `handleFillAction` to pass `preloadedTpl` only when layout blocks are present. |
 
 | 2026-11-04 | `CURRENT` | **App-level Code Splitting & Instant Form Link Resolution (`App.tsx`):** (1) Implemented `React.lazy()` code splitting for heavy sub-systems (`ProcessEditor`, `ProcessReader`, `SubmissionViewer`, `UserManagement`, `ReportBuilder`, `FormReport`), reducing initial monolithic bundle from 3.74 MB to ~735 KB (-80.3% payload). (2) Wrapped dynamic sub-systems in granular `<Suspense fallback={<ModuleLoadingFallback />}>` with CSS spin animation, leaving `Dashboard` and `FormFiller` eager and instantaneous. (3) Connected `data.formTemplate` returned from `/api/forms/resolve` to `setPreloadedFormTemplate()`, eliminating network waterfall on public form links. |
+| 2026-11-26 | `CURRENT` | **System-Wide Recycle Bin & Undo Workflow (`App.tsx`, `Dashboard.tsx`, `SystemTrashView.tsx`, `types.ts`):** (1) Added `TrashItem` & `TrashCounts` types and `viewMode='trash'` accessible via Dashboard switcher pill and user dropdown menu. (2) Added soft-delete `[Trash2]` triggers using `ConfirmModal` across Processes, Forms (List & Card views), and Reports tabs with 5-second Undo Toast (`handleUndoSoftDelete`) and `swr_*` cache synchronization. (3) Enforced 2-tier permissions: Admin/Supervisor move to trash & restore; Admin only can permanently delete or empty trash. |

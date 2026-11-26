@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-06) — Form filling unified to FormFiller canvas, legacy modal and 1,895 lines dead code pruned in ProcessReader |
+| **Verified At Commit** | (2026-11-26) — ProcessEditor soft-delete ConfirmModal adoption (`executeDeleteProcess`), deletedBy attribution & swr_processes cleanup verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -381,7 +381,7 @@ Pending Review ──[handleActivateVersion]──→ Active  (requires effectiv
 Active ──[handleCreateNewDraftEditor]──→ creates new Draft via POST /api/processes/:id/new-version
                                           └─ App.tsx: setSelectedProcessId(newDraft.id), stays on editor
 Active / Pending Review ──[handleRetireVersion]──→ Retired
-Draft ──[handleDeleteProcess]──→ deleted permanently via DELETE /api/processes/:id
+Draft ──[handleDeleteProcess]──→ moved to Trash via soft-delete DELETE /api/processes/:id (ConfirmModal)
 ```
 
 ### Flow D: Open Form Designer from the Form Tab
@@ -540,3 +540,4 @@ full diff of any entry below.
 | 2026-11-04 | CURRENT | **ProcessEditor Unified General Tab (`ProcessEditor.tsx`, `App.tsx`):** Merged Description and Versions into General tab; side-by-side ID and Title; pruned redundant 'Process' prefixes. |
 | 2026-11-05 | CURRENT | **Process Sharing Management & Attached Forms Perms (`ProcessReader.tsx`, `ShareProcessModal.tsx`, `App.tsx`):** (1) Integrated `ShareProcessModal` on ProcessReader header with 2-way sync of process and attached forms sharing. (2) Added `/p/:identifier` public view route in `App.tsx` rendering guest ProcessReader without edit/settings controls. (3) Enforced clean slug-invariant navigation to `/f/:slug?fromProcess=:id` for attached forms, supporting view-only (Eye) and fill (FilePlus) modes with direct back navigation. |
 | 2026-11-06 | CURRENT | **Unified Form-Filling Canvas & Legacy Modal Prune (ProcessReader.tsx, App.tsx):** Eliminated divergent legacy popup form filler modal from ProcessReader.tsx (-1,895 lines dead code). Unified 100% of form-filling interactions across internal logged-in staff (onOpenFormFiller) and external public guests (/f/:slug?fromProcess=:id) to the full-page A4 FormFiller canvas, with seamless two-way back navigation to ProcessReader. |
+| 2026-11-26 | CURRENT | **Process Draft Soft-Delete & `ConfirmModal` Adoption (`ProcessEditor.tsx`, `types.ts`):** Added optional `deletedAt`/`deletedBy` to `Process`; replaced `window.confirm()` in `handleDeleteProcess` with `ConfirmModal` (`executeDeleteProcess`) moving drafts to system Trash without cascading submissions and pruning `swr_processes` cache. |

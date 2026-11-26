@@ -82,6 +82,8 @@ export interface Process {
   sopSignoffs?: SOPSignOffs;
   is_public?: boolean;
   isPublic?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
   workflowFormsData?: {
     [formName: string]: {
       pdfName?: string;
@@ -284,6 +286,10 @@ export interface FormTemplateISO {
   defaultFocusMode?: boolean;
   defaultGuidanceExpanded?: boolean;
   default_guidance_expanded?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }
@@ -314,6 +320,8 @@ export interface Submission {
     notes?: string;
   } | null;
   accessToken?: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 /**
@@ -548,6 +556,38 @@ export interface ReportTemplateISO {
   revisionHistory: ReportRevisionEntry[]; // Full snapshot audit trail
   createdAt?: string;
   updatedAt?: string;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+}
+
+export type TrashEntityType = 'process' | 'form' | 'submission' | 'report';
+
+export interface TrashItem {
+  entityType: TrashEntityType;
+  id: string;
+  title: string;
+  subtitle?: string;
+  version?: string;
+  versions?: string[];
+  isPartialVersion?: boolean;
+  status?: string;
+  deletedAt: string;
+  deletedBy?: string | null;
+  meta?: {
+    operatorId?: string;
+    formId?: string;
+    linkedFormId?: string;
+    mediaCount?: number;
+    processId?: string;
+  };
+}
+
+export interface TrashCounts {
+  total: number;
+  process: number;
+  form: number;
+  submission: number;
+  report: number;
 }
 
 export interface FieldEvaluationResult {

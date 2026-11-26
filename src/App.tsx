@@ -4,7 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Dashboard } from './components/Dashboard';
 import FormFiller from './components/FormFiller';
 import LoginPage from './components/LoginPage';
-import { BookOpen, Users, LogOut, ChevronDown } from 'lucide-react';
+import { BookOpen, Users, LogOut, ChevronDown, Trash2 } from 'lucide-react';
 
 // Lazy-loaded heavy modules (Process Designer with BPMN/Mermaid, Report Builder, Management)
 const ProcessEditor = lazy(() => import('./components/ProcessEditor').then(m => ({ default: m.ProcessEditor })));
@@ -42,7 +42,7 @@ const MainApp: React.FC = () => {
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [triggerProcessPrint, setTriggerProcessPrint] = useState(false);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'reports' | 'guide'>('processes');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'general' | 'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -420,6 +420,28 @@ const MainApp: React.FC = () => {
                       <BookOpen size={14} />
                       <span>Guide</span>
                     </button>
+                    {(hasPermission('design_document') || currentUser.role_id === 'admin') && (
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          setPage('dashboard');
+                          setDashboardViewMode('trash');
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.5rem',
+                          width: '100%', padding: '0.6rem 1rem', border: 'none',
+                          background: 'none', textAlign: 'left', cursor: 'pointer',
+                          fontSize: '0.85rem', color: 'var(--text-primary)',
+                          transition: 'background 0.15s',
+                          borderTop: '1px solid var(--neutral-border)',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                      >
+                        <Trash2 size={14} />
+                        <span>Thùng rác</span>
+                      </button>
+                    )}
                     {hasPermission('manage_users') && (
                       <button
                         onClick={() => {
