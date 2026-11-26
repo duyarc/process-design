@@ -253,11 +253,11 @@ export default function SystemTrashView({
           </p>
         </div>
       ) : (
-        <div className="paper-card accent-teal" style={{ padding: '1rem' }}>
-          <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+        <div className="paper-card accent-teal" style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}>
+          <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                   <th style={{ padding: '0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Type</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>ID</th>
                   <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '36%' }}>Title & Details</th>
@@ -266,7 +266,7 @@ export default function SystemTrashView({
                 </tr>
               </thead>
               <tbody>
-                {visibleItems.map(item => {
+                {visibleItems.map((item, idx) => {
                   const meta = ENTITY_META[item.entityType];
                   const Icon = meta.Icon;
                   const itemKey = getItemKey(item);
@@ -278,7 +278,7 @@ export default function SystemTrashView({
                   return (
                     <tr
                       key={itemKey}
-                      style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
+                      style={{ borderBottom: idx === visibleItems.length - 1 ? 'none' : '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
@@ -324,7 +324,7 @@ export default function SystemTrashView({
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontSize: '0.78rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                         <div>{deletedTime}</div>
                         {item.deletedBy && (
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>by {item.deletedBy}</div>

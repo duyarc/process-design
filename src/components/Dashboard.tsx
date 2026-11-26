@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import type { Process, ReportTemplateISO, TrashEntityType } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Calendar, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft, MoreHorizontal } from 'lucide-react';
+import { Plus, FileText, Eye, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import DashboardToolbar from './common/DashboardToolbar';
@@ -26,12 +26,54 @@ interface DashboardProps {
   onViewingSubmissionChange?: (isViewing: boolean) => void;
 }
 
-const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
-  'Draft': { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-  'Pending Review': { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
-  'Active': { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
-  'Superseded': { bg: '#f9fafb', text: '#4b5563', border: '#e5e7eb' },
-  'Retired': { bg: '#fef2f2', text: '#b91c1c', border: '#fca5a5' }
+const formatStandardDate = (dateInput?: string | number | null): string => {
+  if (!dateInput) return '—';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const formatCleanVersion = (raw?: string): string => {
+  if (!raw) return 'v0.1';
+  const clean = raw.replace(/^[vV]+/, '').trim();
+  return clean ? `v${clean}` : 'v0.1';
+};
+
+const renderStatusBadge = (rawStatus?: string) => {
+  const key = (rawStatus || 'Active').trim();
+  const map: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
+    ACTIVE: { label: 'Active', dot: '#10b981', bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
+    Active: { label: 'Active', dot: '#10b981', bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
+    DRAFT: { label: 'Draft', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+    Draft: { label: 'Draft', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+    'Pending Review': { label: 'Pending Review', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+    Superseded: { label: 'Superseded', dot: '#64748b', bg: '#f8fafc', text: '#475569', border: '#e2e8f0' },
+    Retired: { label: 'Retired', dot: '#ef4444', bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' }
+  };
+  const badge = map[key] || { label: key, dot: '#64748b', bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        padding: '0.15rem 0.55rem',
+        borderRadius: '999px',
+        fontSize: '0.73rem',
+        fontWeight: 600,
+        background: badge.bg,
+        color: badge.text,
+        border: `1px solid ${badge.border}`,
+        whiteSpace: 'nowrap'
+      }}
+    >
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: badge.dot, flexShrink: 0 }} />
+      <span>{badge.label}</span>
+    </span>
+  );
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
@@ -90,10 +132,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedProcessVersions, setSelectedProcessVersions] = useState<Record<string, string>>({});
   const [retiredCollapsed, setRetiredCollapsed] = useState(true);
   const [processSelectDialog, setProcessSelectDialog] = useState<{ form: any; action: 'fill' | 'audit' } | null>(null);
-  const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>(() => {
-    const saved = localStorage.getItem('dashboard_layout_mode');
-    return (saved === 'grid' || saved === 'list') ? saved : 'list';
-  });
   const [isViewingSubmission, setIsViewingSubmission] = useState(false);
   const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -183,26 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const handleLayoutModeChange = (mode: 'grid' | 'list') => {
-    setLayoutMode(mode);
-    localStorage.setItem('dashboard_layout_mode', mode);
-  };
-  
-  const getFormattedVersionString = (proc: Process) => {
-    const rawVersion = proc.version || '0.1';
-    const cleanVersion = /^[vV]/.test(rawVersion) ? rawVersion.trim().slice(1) : rawVersion.trim();
-    const dateSource = proc.sopSignoffs?.effectiveDate || proc.lastUpdated;
-    if (!dateSource) return `V${cleanVersion}`;
-    try {
-      const d = new Date(dateSource);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `V${cleanVersion}-${day}.${month}.${year}`;
-    } catch (e) {
-      return `V${cleanVersion}`;
-    }
-  };
+  const getFormattedVersionString = (proc: Process) => formatCleanVersion(proc.version);
   const { hasPermission, currentUser } = useAuth();
   const canAccessTrash = hasPermission('design_document') || currentUser?.role_id === 'admin';
 
@@ -619,220 +638,66 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return (currentRep.status || 'Active') === 'Retired';
   });
 
-  const renderProcessCard = (family: typeof filteredFamilies[0], isRetired = false) => {
-    const { parentId, representative, allVersions } = family;
-    const selectedId = selectedProcessVersions[parentId];
-    const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
-    const status = currentRep.status || 'Active';
-    const colors = statusColors[status] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-
-    return (
-      <div 
-        key={parentId} 
-        style={{ 
-          background: isRetired ? '#fafafa' : '#ffffff', 
-          border: isRetired ? '1px dashed var(--neutral-border)' : '1px solid var(--neutral-border)', 
-          borderRadius: '8px', 
-          padding: '1.25rem 1rem 1rem 1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          boxShadow: isRetired ? 'none' : '0 1px 3px rgba(0,0,0,0.05)',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          cursor: 'pointer',
-          opacity: isRetired ? 0.85 : 1
-        }}
-        className="hover-card-bg"
-        onClick={() => onSelectProcess(currentRep.id)}
-      >
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-              {parentId}
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '0.15rem 0.4rem',
-                fontSize: '0.72rem',
-                borderRadius: '4px',
-                border: '1px solid var(--neutral-border)',
-                background: '#ffffff',
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                height: '22px'
-              }}>
-                <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                {allVersions.length > 1 ? (
-                  <select
-                    value={currentRep.id}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
-                    }}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      padding: 0,
-                      margin: 0,
-                      width: 'auto',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    {allVersions.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {getFormattedVersionString(v)}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span style={{ color: 'var(--text-primary)' }}>{getFormattedVersionString(currentRep)}</span>
-                )}
-              </div>
-
-              <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', height: '22px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                {status}
-              </span>
-            </div>
-          </div>
-
-          <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-            {currentRep.title}
-          </h4>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.55rem', lineHeight: 1.5 }}>
-            {currentRep.description || 'No description provided.'}
-          </p>
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-              <Calendar size={11} /> {new Date(currentRep.lastUpdated).toLocaleDateString('vi-VN')}
-            </span>
-            <span>•</span>
-            <span>{currentRep.steps?.length || 0} Steps</span>
-            <span>•</span>
-            <span>{currentRep.formFields?.length || 0} Params</span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
-            <button 
-              className="btn btn-secondary btn-sm"
-              title="View Process"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.3rem',
-                padding: '0.3rem 0.6rem',
-                fontSize: '0.75rem',
-                height: '28px',
-                flex: 1,
-                margin: 0
-              }}
-              onClick={() => onSelectProcess(currentRep.id)}
-            >
-              <Eye size={12} /> View
-            </button>
-            <button 
-              className="btn btn-secondary btn-sm"
-              title="Print Process"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.3rem',
-                padding: '0.3rem 0.6rem',
-                fontSize: '0.75rem',
-                height: '28px',
-                flex: 1,
-                margin: 0
-              }}
-              onClick={() => onPrintProcess ? onPrintProcess(currentRep.id) : onSelectProcess(currentRep.id)}
-            >
-              <Printer size={12} /> Print
-            </button>
-            {hasPermission('design_document') && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                title="Move to Trash"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  width: '28px',
-                  height: '28px',
-                  flex: 'none',
-                  margin: 0,
-                  color: 'var(--text-secondary)'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                onClick={() => setDeleteTarget({
-                  entityType: 'process',
-                  id: currentRep.id,
-                  title: currentRep.title,
-                  version: currentRep.version,
-                  note: 'This process and its links will be hidden safely and can be restored anytime.'
-                })}
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderProcessListTable = (familiesList: typeof filteredFamilies, isRetired = false) => {
     return (
-      <div className={`paper-card ${isRetired ? '' : 'accent-teal'}`} style={{ padding: '1.25rem', background: isRetired ? '#fafafa' : '#ffffff', border: isRetired ? '1px dashed var(--neutral-border)' : 'none', boxShadow: isRetired ? 'none' : undefined }}>
-
-        <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+      <div
+        className={`paper-card ${isRetired ? '' : 'accent-teal'}`}
+        style={{
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: '8px',
+          border: isRetired ? '1px dashed var(--neutral-border)' : '1px solid var(--neutral-border)',
+          background: isRetired ? '#fafafa' : '#ffffff',
+          boxShadow: isRetired ? 'none' : undefined,
+          marginBottom: 0
+        }}
+      >
+        <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: isRetired ? '#f1f5f9' : '#f8fafc', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Process ID</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '35%' }}>Title & Description</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '18%' }}>Version</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Status</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Last Updated</th>
+              <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: isRetired ? '#f1f5f9' : '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Process ID</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '40%' }}>Process Title</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Version</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Last Updated</th>
                 <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {familiesList.map((family) => {
+              {familiesList.map((family, idx) => {
                 const { parentId, representative, allVersions } = family;
                 const selectedId = selectedProcessVersions[parentId];
                 const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
                 const status = currentRep.status || 'Active';
-                const colors = statusColors[status] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+                const hasDesc = Boolean(currentRep.description && currentRep.description.trim());
 
                 return (
-                  <tr 
-                    key={parentId} 
-                    style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
+                  <tr
+                    key={parentId}
+                    onClick={() => onSelectProcess(currentRep.id)}
+                    style={{
+                      borderBottom: idx === familiesList.length - 1 ? 'none' : '1px solid var(--neutral-border)',
+                      transition: 'background 0.15s',
+                      cursor: 'pointer'
+                    }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', verticalAlign: 'middle' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                    <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                         {parentId}
                       </span>
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem', marginBottom: '0.15rem' }}>{currentRep.title}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{currentRep.description || 'No description provided.'}</div>
+                    <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{currentRep.title}</div>
+                      {hasDesc && (
+                        <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: '0.15rem', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {currentRep.description}
+                        </div>
+                      )}
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
                       <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -877,17 +742,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                      <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                        {status}
-                      </span>
+                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
+                      {renderStatusBadge(status)}
                     </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                         <Calendar size={11} /> {new Date(currentRep.lastUpdated).toLocaleDateString('vi-VN')}
-                       </span>
+                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                      {formatStandardDate(currentRep.lastUpdated)}
                     </td>
-                    <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                         <button
                           type="button"
@@ -958,18 +819,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   return (
-    <div>
-      {viewMode === 'processes' && (
-        <div className="quote-card">
-          <p className="quote-text">
-            We believe <span className="highlight">common sense</span> and <span className="highlight">simplicity</span> are usually better guidelines than unnecessary sophistication and complexity.
-          </p>
-          <p className="quote-author">
-            — AB Inbev's 7<sup>th</sup> principle
-          </p>
-        </div>
-      )}
-
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 145px)' }}>
+      <div style={{ flex: 1 }}>
       {/* View Switcher Tabs */}
       {!(isViewingSubmission && viewMode === 'submissions') && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', minHeight: '48px', boxSizing: 'border-box' }}>
@@ -1004,100 +855,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
 
-        {viewMode !== 'guide' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {canAccessTrash && (
-              <button
-                type="button"
-                className={`btn btn-sm ${viewMode === 'trash' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => {
-                  if (viewMode === 'trash') {
-                    onViewModeChange && onViewModeChange(lastActiveTab);
-                  } else {
-                    onViewModeChange && onViewModeChange('trash');
-                  }
-                  setSearchQuery('');
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  height: '36px',
-                  padding: '0 0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  margin: 0
-                }}
-                title="Open System Trash"
-              >
-                <Trash2 size={13} />
-                <span>Trash</span>
-                {trashCount > 0 && (
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '0 0.35rem',
-                    borderRadius: '10px',
-                    background: viewMode === 'trash' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
-                    color: viewMode === 'trash' ? '#ffffff' : 'var(--text-primary)'
-                  }}>
-                    {trashCount}
-                  </span>
-                )}
-              </button>
+        {viewMode !== 'guide' && canAccessTrash && (
+          <button
+            type="button"
+            className={`btn btn-sm ${viewMode === 'trash' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => {
+              if (viewMode === 'trash') {
+                onViewModeChange && onViewModeChange(lastActiveTab);
+              } else {
+                onViewModeChange && onViewModeChange('trash');
+              }
+              setSearchQuery('');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              height: '36px',
+              padding: '0 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              margin: 0
+            }}
+            title="Open System Trash"
+          >
+            <Trash2 size={13} />
+            <span>Trash</span>
+            {trashCount > 0 && (
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '0 0.35rem',
+                borderRadius: '10px',
+                background: viewMode === 'trash' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                color: viewMode === 'trash' ? '#ffffff' : 'var(--text-primary)'
+              }}>
+                {trashCount}
+              </span>
             )}
-            {viewMode !== 'submissions' && viewMode !== 'trash' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
-              <button
-                type="button"
-                onClick={() => handleLayoutModeChange('list')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: layoutMode === 'list' ? '#ffffff' : 'transparent',
-                  color: layoutMode === 'list' ? 'var(--primary)' : 'var(--text-secondary)',
-                  boxShadow: layoutMode === 'list' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'all 0.15s ease'
-                }}
-                title="List View"
-              >
-                <List size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLayoutModeChange('grid')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: layoutMode === 'grid' ? '#ffffff' : 'transparent',
-                  color: layoutMode === 'grid' ? 'var(--primary)' : 'var(--text-secondary)',
-                  boxShadow: layoutMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: 'all 0.15s ease'
-                }}
-                title="Grid View"
-              >
-                <Grid size={15} />
-              </button>
-            </div>
-            ) : (
-              <div style={{ height: '36px' }} />
-            )}
-          </div>
+          </button>
         )}
       </div>
       )}
@@ -1273,53 +1070,85 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
 
           return (
-            <div className="paper-card accent-teal" style={{ padding: '1.25rem' }}>
-              <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+            <div
+              className="paper-card accent-teal"
+              style={{
+                padding: 0,
+                overflow: 'hidden',
+                borderRadius: '8px',
+                border: '1px solid var(--neutral-border)',
+                marginBottom: 0
+              }}
+            >
+              <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Report ID</th>
+                    <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                      <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Report ID</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Report Title</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>Source Form</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '22%' }}>Source Form</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '10%' }}>Version</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
                       <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredReports.map((rep) => {
+                    {filteredReports.map((rep, idx) => {
                       const status = rep.status || 'DRAFT';
-                      const colors = status === 'ACTIVE'
-                        ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' }
-                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+                      const srcForm = formsList.find(f => f.formId === rep.linkedFormId);
+                      const srcTitle = srcForm?.formTitle;
 
                       return (
                         <tr
                           key={rep.reportId + rep.version}
-                          style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
+                          onClick={() => onOpenReportBuilder && onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
+                          style={{
+                            borderBottom: idx === filteredReports.length - 1 ? 'none' : '1px solid var(--neutral-border)',
+                            transition: 'background 0.15s',
+                            cursor: onOpenReportBuilder ? 'pointer' : 'default'
+                          }}
                           onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                          <td style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', verticalAlign: 'middle' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                          <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                               {rep.reportId}
                             </span>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
                             {rep.reportTitle}
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontSize: '0.8rem' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{rep.linkedFormId}</span>
+                          <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              {srcTitle && srcTitle.toLowerCase() !== (rep.linkedFormId || '').toLowerCase() && (
+                                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)' }}>{srcTitle}</span>
+                              )}
+                              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.12rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                                {rep.linkedFormId}
+                              </span>
+                            </div>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <span style={{ fontWeight: 600, fontSize: '0.75rem' }}>{rep.version}</span>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '0.15rem 0.4rem',
+                              fontSize: '0.72rem',
+                              borderRadius: '4px',
+                              border: '1px solid var(--neutral-border)',
+                              background: '#ffffff',
+                              color: 'var(--text-primary)',
+                              fontWeight: 600,
+                              height: '22px'
+                            }}>
+                              <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
+                              <span>{formatCleanVersion(rep.version)}</span>
+                            </div>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                              {status}
-                            </span>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
+                            {renderStatusBadge(status)}
                           </td>
-                          <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }}>
+                          <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                               {onOpenReportBuilder && (
                                 <button
@@ -1514,511 +1343,281 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         return (
           <>
-            {layoutMode === 'list' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {processFormGroups.map((group) => {
-                  const isCollapsed = Boolean(collapsedProcessGroups[group.processId]);
-                  const procStatus = group.status || 'Active';
-                  const procColors = statusColors[procStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-                  return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {processFormGroups.map((group) => {
+                const isCollapsed = Boolean(collapsedProcessGroups[group.processId]);
+                return (
+                  <div 
+                    key={group.processId}
+                    className="paper-card accent-teal"
+                    style={{
+                      padding: 0,
+                      overflow: 'visible',
+                      borderRadius: '8px',
+                      border: '1px solid var(--neutral-border)',
+                      position: 'relative',
+                      zIndex: 1,
+                      marginBottom: 0
+                    }}
+                  >
+                    {/* Group Accordion Header */}
                     <div 
-                      key={group.processId}
-                      className="paper-card accent-teal"
+                      onClick={() => toggleProcessGroup(group.processId)}
                       style={{
-                        padding: 0,
-                        overflow: 'visible',
-                        borderRadius: '8px',
-                        border: '1px solid var(--neutral-border)',
-                        position: 'relative',
-                        zIndex: 1
-                      }}
-                    >
-                      {/* Group Accordion Header */}
-                      <div 
-                        onClick={() => toggleProcessGroup(group.processId)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.75rem 1rem',
-                          background: '#f8fafc',
-                          borderBottom: isCollapsed ? 'none' : '1px solid var(--neutral-border)',
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          borderTopLeftRadius: '8px',
-                          borderTopRightRadius: '8px',
-                          borderBottomLeftRadius: isCollapsed ? '8px' : '0',
-                          borderBottomRightRadius: isCollapsed ? '8px' : '0',
-                          transition: 'background 0.15s ease'
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                          </div>
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            {group.processId === 'unlinked' ? (
-                              <FileText size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                            ) : (
-                              <GitBranch size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                            )}
-                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                              {group.processTitle}
-                            </span>
-                            {group.processId !== 'unlinked' && (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>
-                                {group.processId}
-                              </span>
-                            )}
-                          </div>
-
-                          <span style={{ color: '#cbd5e1' }}>•</span>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                            <span>Forms:</span>
-                            <span style={{ 
-                              fontWeight: 600, 
-                              color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--primary)',
-                              background: group.processId === 'unlinked' ? '#f1f5f9' : '#f0fdf4',
-                              padding: '0.12rem 0.45rem',
-                              borderRadius: '4px',
-                              border: `1px solid ${group.processId === 'unlinked' ? '#e2e8f0' : '#bbf7d0'}`
-                            }}>
-                              {group.forms.length} {group.forms.length === 1 ? 'form' : 'forms'}
-                            </span>
-                          </div>
-
-                          {group.status && (
-                            <>
-                              <span style={{ color: '#cbd5e1' }}>•</span>
-                              <span className="badge" style={{ backgroundColor: procColors.bg, color: procColors.text, border: `1px solid ${procColors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                                {group.status}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
-                          {group.processId !== 'unlinked' && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => onSelectProcess(group.processId)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.3rem',
-                                fontSize: '0.78rem',
-                                padding: '0.3rem 0.65rem',
-                                background: '#ffffff',
-                                fontWeight: 600,
-                                borderColor: 'rgba(16, 163, 163, 0.3)',
-                                color: 'var(--primary)'
-                              }}
-                              title="View process flowchart & details"
-                            >
-                              <Eye size={13} />
-                              <span>View Process</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Group Forms Table */}
-                      {!isCollapsed && (
-                        <div style={{ overflow: 'visible' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                            <thead>
-                              <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Form ID</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '37%' }}>Form Title</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '14%' }}>Last Updated</th>
-                                <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }}>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {group.forms.map(({ form }) => {
-                        const status = form.status || 'DRAFT';
-                        const colors = status === 'ACTIVE' 
-                          ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
-                          : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
-                        const displayStatus = status;
-
-                        const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
-                        const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString('vi-VN') : '—';
-
-                        return (
-                          <tr 
-                            key={`${group.processId}_${form.formName}`} 
-                            className="dashboard-form-row"
-                            style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                                {form.formId}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {form.formTitle}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                              {formsGroupedById[form.formId] && (
-                                <div style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  padding: '0.15rem 0.4rem',
-                                  fontSize: '0.72rem',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--neutral-border)',
-                                  background: '#ffffff',
-                                  color: 'var(--text-primary)',
-                                  fontWeight: 600,
-                                  height: '22px'
-                                }}>
-                                  <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                                  {formsGroupedById[form.formId].length > 1 ? (
-                                    <select
-                                      value={form.version}
-                                      onChange={(e) => {
-                                        const selectedVal = e.target.value;
-                                        setSelectedFormVersions(prev => ({
-                                          ...prev,
-                                          [form.formId]: selectedVal
-                                        }));
-                                      }}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        padding: 0,
-                                        margin: 0,
-                                        width: 'auto',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        color: 'var(--text-primary)',
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                      }}
-                                    >
-                                      {formsGroupedById[form.formId]
-                                        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                                        .map((vOpt: any) => (
-                                          <option key={vOpt.id || vOpt.version} value={vOpt.version}>
-                                            {vOpt.version}
-                                          </option>
-                                        ))
-                                      }
-                                    </select>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-primary)' }}>{formsGroupedById[form.formId][0].version}</span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                              <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                                {displayStatus}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <Calendar size={11} /> {formattedDate}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.5rem 1rem 0.5rem 0.75rem', textAlign: 'right', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                {/* Primary action: Fill Form */}
-                                <button
-                                  type="button"
-                                  title="Fill form"
-                                  onClick={() => handleFillAction(form)}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                    height: '28px',
-                                    padding: '0 0.5rem',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    background: 'transparent',
-                                    color: 'var(--primary)',
-                                    fontSize: '0.76rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'background 0.15s ease'
-                                  }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                >
-                                  <FilePlus size={13} />
-                                  <span>Fill</span>
-                                </button>
-
-                                {/* Secondary action: Edit Template */}
-                                {hasPermission('design_document') && (
-                                  <button
-                                    type="button"
-                                    title="Edit form template"
-                                    onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                                    style={ghostActionBtnStyle}
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                  >
-                                    <Edit2 size={13} />
-                                  </button>
-                                )}
-
-                                {/* Overflow menu [⋯] */}
-                                {hasPermission('design_document') && (
-                                  <button
-                                    type="button"
-                                    title="More actions"
-                                    onClick={(e) => openFormActionMenu(e, form)}
-                                    style={{
-                                      ...ghostActionBtnStyle,
-                                      background: formActionMenu?.form?.formId === form.formId ? '#f1f5f9' : 'transparent',
-                                      color: formActionMenu?.form?.formId === form.formId ? 'var(--text-primary)' : 'var(--text-secondary)'
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                    onMouseLeave={e => {
-                                      const isOpen = formActionMenu?.form?.formId === form.formId;
-                                      e.currentTarget.style.background = isOpen ? '#f1f5f9' : 'transparent';
-                                      e.currentTarget.style.color = isOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                                    }}
-                                  >
-                                    <MoreHorizontal size={15} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
-                {filteredFormsList.map((form) => {
-                  const status = form.status || 'DRAFT';
-                  const colors = status === 'ACTIVE' 
-                    ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
-                    : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
-                  const displayStatus = status;
-
-                  return (
-                    <div 
-                      key={form.formName} 
-                      style={{ 
-                        background: '#ffffff', 
-                        border: '1px solid var(--neutral-border)', 
-                        borderRadius: '8px', 
-                        padding: '1.25rem 1rem 1rem 1rem',
                         display: 'flex',
-                        flexDirection: 'column',
+                        alignItems: 'center',
                         justifyContent: 'space-between',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                        padding: '0.75rem 1rem',
+                        background: '#f8fafc',
+                        borderBottom: isCollapsed ? 'none' : '1px solid var(--neutral-border)',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        borderTopLeftRadius: '8px',
+                        borderTopRightRadius: '8px',
+                        borderBottomLeftRadius: isCollapsed ? '8px' : '0',
+                        borderBottomRightRadius: isCollapsed ? '8px' : '0',
+                        transition: 'background 0.15s ease'
                       }}
-                      className="hover-card-bg dashboard-card-hover"
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; }}
                     >
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                            {form.formId}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            {formsGroupedById[form.formId] && (
-                              <div style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '0.15rem 0.4rem',
-                                fontSize: '0.72rem',
-                                borderRadius: '4px',
-                                border: '1px solid var(--neutral-border)',
-                                background: '#ffffff',
-                                color: 'var(--text-primary)',
-                                fontWeight: 600,
-                                height: '22px'
-                              }}>
-                                <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                                {formsGroupedById[form.formId].length > 1 ? (
-                                  <select
-                                    value={form.version}
-                                    onChange={(e) => {
-                                      const selectedVal = e.target.value;
-                                      setSelectedFormVersions(prev => ({
-                                        ...prev,
-                                        [form.formId]: selectedVal
-                                      }));
-                                    }}
-                                    style={{
-                                      border: 'none',
-                                      background: 'transparent',
-                                      padding: 0,
-                                      margin: 0,
-                                      width: 'auto',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      color: 'var(--text-primary)',
-                                      cursor: 'pointer',
-                                      outline: 'none'
-                                    }}
-                                  >
-                                    {formsGroupedById[form.formId]
-                                      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                                      .map((vOpt: any) => {
-                                        let displayOptVersion = vOpt.version;
-                                        try {
-                                          const updateDate = new Date(vOpt.updated_at).toLocaleDateString('vi-VN');
-                                          displayOptVersion = `${vOpt.version} (${updateDate})`;
-                                        } catch (_) {}
-                                        return (
-                                          <option key={vOpt.id || vOpt.version} value={vOpt.version}>
-                                            {displayOptVersion}
-                                          </option>
-                                        );
-                                      })
-                                    }
-                                  </select>
-                                ) : (() => {
-                                  const singleForm = formsGroupedById[form.formId][0];
-                                  let displaySingleVersion = singleForm.version;
-                                  try {
-                                    const updateDate = new Date(singleForm.updated_at).toLocaleDateString('vi-VN');
-                                    displaySingleVersion = `${singleForm.version} (${updateDate})`;
-                                  } catch (_) {}
-                                  return <span style={{ color: 'var(--text-primary)' }}>{displaySingleVersion}</span>;
-                                })()}
-                              </div>
-                            )}
-                            <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', height: '22px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
-                              {displayStatus}
-                            </span>
-                          </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                        <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                          {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
                         </div>
                         
-                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                          {form.formTitle}
-                        </h4>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                          Linked Processes: {form.linkedProcesses.length > 0 ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
-                              {form.linkedProcesses.map((lp: any) => (
-                                <span 
-                                  key={lp.id} 
-                                  style={{ 
-                                    display: 'inline-flex', 
-                                    padding: '0.1rem 0.35rem', 
-                                    fontSize: '0.7rem', 
-                                    borderRadius: '4px', 
-                                    background: '#f1f5f9', 
-                                    color: 'var(--text-primary)', 
-                                    border: '1px solid #e2e8f0',
-                                    fontWeight: 500
-                                  }}
-                                >
-                                  {lp.title}
-                                </span>
-                              ))}
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {group.processId === 'unlinked' ? (
+                            <FileText size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                           ) : (
-                            <strong style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Standalone Form</strong>
+                            <GitBranch size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                          )}
+                          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                            {group.processTitle}
+                          </span>
+                          {group.processId !== 'unlinked' && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>
+                              {group.processId}
+                            </span>
                           )}
                         </div>
+
+                        <span style={{ color: '#cbd5e1' }}>•</span>
+
+                        <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          {group.forms.length} {group.forms.length === 1 ? 'form' : 'forms'}
+                        </span>
+
+                        {group.status && (
+                          <>
+                            <span style={{ color: '#cbd5e1' }}>•</span>
+                            {renderStatusBadge(group.status)}
+                          </>
+                        )}
                       </div>
 
-                      <div className="dashboard-card-actions">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
-                          <button 
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                        {group.processId !== 'unlinked' && (
+                          <button
+                            type="button"
                             className="btn btn-secondary btn-sm"
-                            style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.78rem', margin: 0, gap: '0.3rem', justifyContent: 'center', background: '#f0fdfa', borderColor: 'rgba(16, 163, 163, 0.3)', color: 'var(--primary)', fontWeight: 600 }}
-                            title="Fill form"
-                            onClick={() => handleFillAction(form)}
+                            onClick={() => onSelectProcess(group.processId)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontSize: '0.78rem',
+                              padding: '0.3rem 0.65rem',
+                              background: '#ffffff',
+                              fontWeight: 600,
+                              borderColor: 'rgba(16, 163, 163, 0.3)',
+                              color: 'var(--primary)',
+                              margin: 0
+                            }}
+                            title="View process flowchart & details"
                           >
-                            <FilePlus size={13} style={{ flexShrink: 0, color: 'var(--primary)' }} />
-                            Fill Form
+                            <Eye size={13} />
+                            <span>View Process</span>
                           </button>
-                        
-                          {hasPermission('design_document') && (
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                              <button 
-                                className="btn btn-secondary btn-sm"
-                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title="Edit form template"
-                                onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                              >
-                                <Edit2 size={13} style={{ flexShrink: 0 }} />
-                                Edit
-                              </button>
-                              <button 
-                                className="btn btn-secondary btn-sm"
-                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title="Duplicate form"
-                                disabled={duplicatingFormId === form.formId}
-                                onClick={() => handleDuplicateFormDirect(form)}
-                              >
-                                {duplicatingFormId === form.formId ? (
-                                  <div className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
-                                ) : (
-                                  <Copy size={13} style={{ flexShrink: 0 }} />
-                                )}
-                                Duplicate
-                              </button>
-                              {onOpenReportBuilder && (
-                                <button 
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                  title="Configure Report Template"
-                                  onClick={() => {
-                                    const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
-                                    onOpenReportBuilder(form.formId, linkedRep?.reportId);
-                                  }}
-                                >
-                                  <SlidersHorizontal size={13} style={{ flexShrink: 0 }} />
-                                  Report
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                style={{ flex: 'none', width: '28px', height: '28px', padding: 0, margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
-                                title="Move to Trash"
-                                onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; }}
-                                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                onClick={() => setDeleteTarget({
-                                  entityType: 'form',
-                                  id: form.formId,
-                                  title: form.formTitle || form.formId,
-                                  version: form.version,
-                                  note: form.linkedProcesses.length > 0
-                                    ? 'Process links, submitted records, and attached photos will be preserved; restoring this form reactivates it automatically.'
-                                    : 'This form will be stored in Trash and can be restored anytime.'
-                                })}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+
+                    {/* Group Forms Table */}
+                    {!isCollapsed && (
+                      <div style={{ overflow: 'visible' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                              <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Form ID</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '38%' }}>Form Title</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Version</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
+                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Last Updated</th>
+                              <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '10%' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.forms.map(({ form }, fIdx) => {
+                              const status = form.status || 'DRAFT';
+                              const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
+                              const formattedDate = formatStandardDate(rawDate);
+
+                              return (
+                                <tr 
+                                  key={`${group.processId}_${form.formName}`} 
+                                  className="dashboard-form-row"
+                                  onClick={() => handleFillAction(form)}
+                                  style={{
+                                    borderBottom: fIdx === group.forms.length - 1 ? 'none' : '1px solid var(--neutral-border)',
+                                    transition: 'background 0.15s',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                                      {form.formId}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    {form.formTitle}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+                                    {formsGroupedById[form.formId] && (
+                                      <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        padding: '0.15rem 0.4rem',
+                                        fontSize: '0.72rem',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--neutral-border)',
+                                        background: '#ffffff',
+                                        color: 'var(--text-primary)',
+                                        fontWeight: 600,
+                                        height: '22px'
+                                      }}>
+                                        <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
+                                        {formsGroupedById[form.formId].length > 1 ? (
+                                          <select
+                                            value={form.version}
+                                            onChange={(e) => {
+                                              const selectedVal = e.target.value;
+                                              setSelectedFormVersions(prev => ({
+                                                ...prev,
+                                                [form.formId]: selectedVal
+                                              }));
+                                            }}
+                                            style={{
+                                              border: 'none',
+                                              background: 'transparent',
+                                              padding: 0,
+                                              margin: 0,
+                                              width: 'auto',
+                                              fontSize: '0.72rem',
+                                              fontWeight: 600,
+                                              color: 'var(--text-primary)',
+                                              cursor: 'pointer',
+                                              outline: 'none'
+                                            }}
+                                          >
+                                            {formsGroupedById[form.formId]
+                                              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                                              .map((vOpt: any) => (
+                                                <option key={vOpt.id || vOpt.version} value={vOpt.version}>
+                                                  {formatCleanVersion(vOpt.version)}
+                                                </option>
+                                              ))
+                                            }
+                                          </select>
+                                        ) : (
+                                          <span style={{ color: 'var(--text-primary)' }}>{formatCleanVersion(formsGroupedById[form.formId][0].version)}</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
+                                    {renderStatusBadge(status)}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                                    {formattedDate}
+                                  </td>
+                                  <td style={{ padding: '0.5rem 1rem 0.5rem 0.75rem', textAlign: 'right', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                      <button
+                                        type="button"
+                                        title="Fill form"
+                                        onClick={() => handleFillAction(form)}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.25rem',
+                                          height: '28px',
+                                          padding: '0 0.5rem',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          background: 'transparent',
+                                          color: 'var(--primary)',
+                                          fontSize: '0.76rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          whiteSpace: 'nowrap',
+                                          transition: 'background 0.15s ease'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <FilePlus size={13} />
+                                        <span>Fill</span>
+                                      </button>
+
+                                      {hasPermission('design_document') && (
+                                        <button
+                                          type="button"
+                                          title="Edit form template"
+                                          onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
+                                          style={ghostActionBtnStyle}
+                                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                        >
+                                          <Edit2 size={13} />
+                                        </button>
+                                      )}
+
+                                      {hasPermission('design_document') && (
+                                        <button
+                                          type="button"
+                                          title="More actions"
+                                          onClick={(e) => openFormActionMenu(e, form)}
+                                          style={{
+                                            ...ghostActionBtnStyle,
+                                            background: formActionMenu?.form?.formId === form.formId ? '#f1f5f9' : 'transparent',
+                                            color: formActionMenu?.form?.formId === form.formId ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                          onMouseLeave={e => {
+                                            const isOpen = formActionMenu?.form?.formId === form.formId;
+                                            e.currentTarget.style.background = isOpen ? '#f1f5f9' : 'transparent';
+                                            e.currentTarget.style.color = isOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                          }}
+                                        >
+                                          <MoreHorizontal size={15} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {formActionMenu && ReactDOM.createPortal(
               <div
@@ -2259,13 +1858,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Active Processes Group */}
           {activeFamilies.length > 0 ? (
-            layoutMode === 'list' ? (
-              renderProcessListTable(activeFamilies, false)
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
-                {activeFamilies.map((family) => renderProcessCard(family, false))}
-              </div>
-            )
+            renderProcessListTable(activeFamilies, false)
           ) : (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--neutral-border)', borderRadius: '8px', background: '#fcfcfc' }}>
               No active processes available.
@@ -2297,18 +1890,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span>Retired Processes ({retiredFamilies.length})</span>
               </button>
 
-              {!retiredCollapsed && (
-                layoutMode === 'list' ? (
-                  renderProcessListTable(retiredFamilies, true)
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
-                    {retiredFamilies.map((family) => renderProcessCard(family, true))}
-                  </div>
-                )
-              )}
+              {!retiredCollapsed && renderProcessListTable(retiredFamilies, true)}
             </div>
           )}
         </div>
+      )}
+      </div>
+
+      {!(isViewingSubmission && viewMode === 'submissions') && (
+        <footer className="quote-footer no-print" style={{ marginTop: '2.5rem' }}>
+          <span>
+            “We believe <strong>common sense</strong> and <strong>simplicity</strong> are usually better guidelines than unnecessary sophistication and complexity.”
+          </span>
+          <span className="quote-attribution">— AB InBev’s 7<sup>th</sup> principle</span>
+        </footer>
       )}
       <ConfirmModal
         isOpen={Boolean(deleteTarget)}

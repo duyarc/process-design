@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-11-26) — Unified WYSIWYG `handleOpenSubmission` + integrated Supervisor Verification card, Portal `rowActionMenu`, `formMetaMap`, and English `FormFiller` chrome verified against source |
+| **Verified At Commit** | (2026-11-26) — Normalized `formTitle`/`formId` header deduplication, dot-pill status badges, and tabular dates verified against `SubmissionManager.tsx` |
 
 ### Quick File Index
 
@@ -462,3 +462,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-11-06 | `CURRENT` | **INFO_GRID Unlabeled Field Vertical Alignment Fix (`FormFiller.tsx`):** Handled edge case where companion fields without labels in multi-column `INFO_GRID` collapsed the label container to 0px height and floated up to the label level of adjacent fields. Reserved exact 1-line label height using `\u00A0` non-breaking space, `minHeight: '1.4em'`, and `userSelect: cleanLabel ? 'auto' : 'none'`, restoring 100% horizontal input baseline alignment with adjacent fields. |
 | 2026-11-26 | `CURRENT` | **Submission Soft-Delete, Media Preservation & Undo (`SubmissionManager.tsx`):** Updated `handleDeleteSubmission` and `ConfirmModal` to move submissions into system Trash while preserving attached R2 evidence photos until Admin permanent deletion; added 5-second Undo Toast (`handleUndoDeleteSubmission`), `swr_submissions` sync, and `onTrashChanged` callback. |
 | 2026-11-26 | `CURRENT` | **Unified Submissions View-Verify Loop & Portal Row Controls (`SubmissionManager`, `FormFiller`):** (1) Pruned legacy 480px Slide-over Drawer (`selectedSubmission`) and duplicate `Xem toàn văn Web` menu entry; unified row click and ghost `Eye` trigger (`handleOpenSubmission`) to open full WYSIWYG `FormFiller` paired with an integrated `820px` **Supervisor QMS Verification** card underneath. (2) Added `formMetaMap` title resolution, neutral slate `Process` badges, group record/pending counters, flush column alignment, calm `Pending Review` dot indicators, and `ReactDOM.createPortal` `rowActionMenu` (`handleDuplicateSubmission`, `Print A4`, `Move to Trash`). (3) Localized `SubmissionManager` and `FormFiller` executive chrome to 100% English. |
+| 2026-11-26 | `CURRENT` | **Submissions Visual Parity & Header Deduplication (`SubmissionManager`):** Normalized `formTitle` vs. `formId` comparison (stripping whitespace/dashes/underscores) to suppress redundant code badges like `5C SCORECARD [5C-Scorecard]`, unified dot-pill `Verified`/`Pending Review` badges to `Dashboard` parity, and enforced `tabular-nums` dates. |

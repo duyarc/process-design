@@ -444,51 +444,26 @@ tr:last-child td {
   transform: translateY(0);
 }
 
-/* Quote Card styling */
-.quote-card {
-  background: linear-gradient(135deg, #fef8f3 0%, #fffbf7 100%);
-  border: 1px solid #fbdcb9;
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.25rem;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.05);
-}
-
-.quote-card::before {
-  content: '';
-  position: absolute;
-  top: -50px;
-  right: -50px;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(249, 115, 22, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
-  pointer-events: none;
-}
-
-.quote-text {
-  font-size: 1.02rem;
-  font-weight: 500;
-  line-height: 1.6;
-  color: #374151;
-  margin: 0 0 0.25rem 0;
+/* Editorial Quote Footer */
+.quote-footer {
+  margin-top: auto;
+  padding: 2rem 1rem 0.5rem 1rem;
+  border-top: 1px solid var(--neutral-border);
   text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
-.quote-text span.highlight {
-  color: #ea580c;
-  font-weight: 700;
+.quote-footer strong {
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
-.quote-author {
-  font-size: 0.8rem;
+.quote-footer .quote-attribution {
+  margin-left: 0.5rem;
   font-style: italic;
-  color: #6b7280;
-  text-align: right;
-  margin: 0;
-  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* Hide BPMN.io branding watermark logo */

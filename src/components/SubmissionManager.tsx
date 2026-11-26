@@ -912,7 +912,8 @@ export default function SubmissionManager({
                     borderRadius: '8px',
                     border: '1px solid var(--neutral-border)',
                     position: 'relative',
-                    zIndex: 1
+                    zIndex: 1,
+                    marginBottom: 0
                   }}
                 >
                   {/* Group Accordion Header */}
@@ -946,7 +947,7 @@ export default function SubmissionManager({
                         <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
                           {group.formTitle}
                         </span>
-                        {group.formTitle.toLowerCase() !== group.formId.toLowerCase() && (
+                        {group.formTitle.toLowerCase().replace(/[\s_-]+/g, '') !== group.formId.toLowerCase().replace(/[\s_-]+/g, '') && (
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 600 }}>
                             {group.formId}
                           </span>
@@ -1058,12 +1059,12 @@ export default function SubmissionManager({
                           </tr>
                         </thead>
                         <tbody>
-                          {group.submissions.map((sub) => {
+                          {group.submissions.map((sub, subIdx) => {
                             return (
                               <tr 
                                 key={sub.id} 
                                 style={{
-                                  borderBottom: '1px solid var(--neutral-border)',
+                                  borderBottom: subIdx === group.submissions.length - 1 ? 'none' : '1px solid var(--neutral-border)',
                                   background: 'transparent',
                                   transition: 'background 0.15s',
                                   cursor: 'pointer'
@@ -1089,7 +1090,7 @@ export default function SubmissionManager({
                                 </td>
 
                                 {/* Cột 2: Ngày */}
-                                <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-secondary)', verticalAlign: 'middle', fontSize: '0.82rem', fontWeight: 500 }}>
+                                <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-secondary)', verticalAlign: 'middle', fontSize: '0.82rem', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                                   {formatDateOnly(sub.submittedAt)}
                                 </td>
 
@@ -1106,16 +1107,17 @@ export default function SubmissionManager({
                                     <span style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: '0.25rem',
-                                      padding: '0.18rem 0.5rem',
-                                      borderRadius: '12px',
-                                      fontSize: '0.74rem',
+                                      gap: '0.35rem',
+                                      padding: '0.15rem 0.55rem',
+                                      borderRadius: '999px',
+                                      fontSize: '0.73rem',
                                       fontWeight: 600,
                                       background: '#f0fdf4',
                                       color: '#15803d',
-                                      border: '1px solid #bbf7d0'
+                                      border: '1px solid #bbf7d0',
+                                      whiteSpace: 'nowrap'
                                     }}>
-                                      <CheckCircle2 size={12} />
+                                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
                                       <span>Verified</span>
                                     </span>
                                   ) : (
@@ -1123,9 +1125,14 @@ export default function SubmissionManager({
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       gap: '0.35rem',
-                                      fontSize: '0.78rem',
+                                      padding: '0.15rem 0.55rem',
+                                      borderRadius: '999px',
+                                      fontSize: '0.73rem',
                                       fontWeight: 600,
-                                      color: '#b45309'
+                                      background: '#fffbeb',
+                                      color: '#b45309',
+                                      border: '1px solid #fde68a',
+                                      whiteSpace: 'nowrap'
                                     }}>
                                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
                                       <span>Pending Review</span>
