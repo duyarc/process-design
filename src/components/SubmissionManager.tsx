@@ -36,7 +36,6 @@ interface SubmissionManagerProps {
   cachedForms?: any[];
   hideToolbar?: boolean;
   externalSearchTerm?: string;
-  externalProcessFilter?: string;
   externalSignoffFilter?: 'ALL' | 'PENDING' | 'VERIFIED';
   onOpenReport?: (submissionId: string) => void;
   onOpenReportBuilder?: (formId: string) => void;
@@ -44,6 +43,22 @@ interface SubmissionManagerProps {
   onOpenFormFiller?: (processId: string, formName: string) => void;
   onTrashChanged?: () => void;
 }
+
+interface FormGroup {
+  formKey: string;
+  formId: string;
+  formTitle: string;
+  formVersion: string;
+  processId: string;
+  processTitle: string;
+  submissions: Submission[];
+  pendingCount: number;
+  verifiedCount: number;
+}
+
+type SubmissionRowMenuState =
+  | { key: string; kind: 'group'; group: FormGroup; top: number; right: number; openUpward: boolean }
+  | { key: string; kind: 'submission'; sub: Submission; top: number; right: number; openUpward: boolean };
 
 export default function SubmissionManager({ 
   onBack, 
@@ -53,7 +68,6 @@ export default function SubmissionManager({
   cachedForms,
   hideToolbar = false,
   externalSearchTerm,
-  externalProcessFilter,
   externalSignoffFilter,
   onOpenReport, 
   onOpenReportBuilder, 
@@ -112,13 +126,8 @@ export default function SubmissionManager({
     }
   });
 
-  // Portal Overflow Menu for row actions
-  const [rowActionMenu, setRowActionMenu] = useState<{
-    sub: Submission;
-    top: number;
-    right: number;
-    openUpward: boolean;
-  } | null>(null);
+  // Portal Overflow Menu for group and submission row actions
+  const [rowActionMenu, setRowActionMenu] = useState<SubmissionRowMenuState | null>(null);
 
   useEffect(() => {
     if (!rowActionMenu) return;
@@ -138,16 +147,21 @@ export default function SubmissionManager({
     };
   }, [rowActionMenu]);
 
-  const openRowActionMenu = (e: React.MouseEvent<HTMLButtonElement>, sub: Submission) => {
+  const openRowActionMenu = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    payload:
+      | { key: string; kind: 'group'; group: FormGroup }
+      | { key: string; kind: 'submission'; sub: Submission }
+  ) => {
     e.stopPropagation();
-    if (rowActionMenu?.sub.id === sub.id) {
+    if (rowActionMenu?.key === payload.key) {
       setRowActionMenu(null);
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
     const openUpward = window.innerHeight - rect.bottom < 160;
     setRowActionMenu({
-      sub,
+      ...payload,
       top: openUpward ? rect.top - 4 : rect.bottom + 4,
       right: Math.max(8, window.innerWidth - rect.right),
       openUpward
@@ -186,14 +200,11 @@ export default function SubmissionManager({
   // Filter States — prioritize external props when hoisted, fallback to internal states
   const [internalSearchTerm, setInternalSearchTerm] = useState(initialFormFilter || '');
   const [internalSignoffFilter, setInternalSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
-  const [internalProcessFilter, setInternalProcessFilter] = useState<string>('ALL');
 
   const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
   const setSearchTerm = setInternalSearchTerm;
   const signoffFilter = externalSignoffFilter !== undefined ? externalSignoffFilter : internalSignoffFilter;
   const setSignoffFilter = setInternalSignoffFilter;
-  const processFilter = externalProcessFilter !== undefined ? externalProcessFilter : internalProcessFilter;
-  const setProcessFilter = setInternalProcessFilter;
 
   // Deletion States
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
@@ -408,23 +419,13 @@ export default function SubmissionManager({
   const filteredSubmissions = useMemo(() => {
     return submissions.filter(sub => {
       const linkedProc = getLinkedProcess(sub.processId, sub.formId);
-      const procId = linkedProc ? linkedProc.id : 'unlinked';
       const procTitle = linkedProc ? linkedProc.title : 'Standalone Form';
 
-      // 1. Process filter
-      if (processFilter !== 'ALL') {
-        if (processFilter === 'unlinked') {
-          if (procId !== 'unlinked') return false;
-        } else {
-          if (procId !== processFilter) return false;
-        }
-      }
-
-      // 2. Signoff filter
+      // 1. Signoff filter
       if (signoffFilter === 'PENDING' && sub.supervisorSignoff) return false;
       if (signoffFilter === 'VERIFIED' && !sub.supervisorSignoff) return false;
 
-      // 3. Search text
+      // 2. Search text
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const opId = (sub.operatorId || '').toLowerCase();
@@ -443,20 +444,7 @@ export default function SubmissionManager({
 
       return true;
     });
-  }, [submissions, processes, processFilter, signoffFilter, searchTerm]);
-
-  // Form Group Model
-  interface FormGroup {
-    formKey: string;
-    formId: string;
-    formTitle: string;
-    formVersion: string;
-    processId: string;
-    processTitle: string;
-    submissions: Submission[];
-    pendingCount: number;
-    verifiedCount: number;
-  }
+  }, [submissions, processes, formMetaMap, signoffFilter, searchTerm]);
 
   // 3. Group filtered submissions by Form Template
   const formGroups = useMemo<FormGroup[]>(() => {
@@ -822,31 +810,16 @@ export default function SubmissionManager({
               onSearchChange={setSearchTerm}
               placeholder="Search submissions..."
               filters={
-                <>
-                  <select
-                    aria-label="Filter by process"
-                    value={processFilter}
-                    onChange={(e) => setProcessFilter(e.target.value)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Processes</option>
-                    {processes.filter(p => p.id !== 'unlinked').map(p => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                    <option value="unlinked">Standalone Forms</option>
-                  </select>
-
-                  <select
-                    aria-label="Filter by review status"
-                    value={signoffFilter}
-                    onChange={(e) => setSignoffFilter(e.target.value as any)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="PENDING">Pending Review</option>
-                    <option value="VERIFIED">Verified</option>
-                  </select>
-                </>
+                <select
+                  aria-label="Filter by review status"
+                  value={signoffFilter}
+                  onChange={(e) => setSignoffFilter(e.target.value as any)}
+                  style={{ width: 'auto', height: '36px', padding: '0 0.65rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending Review</option>
+                  <option value="VERIFIED">Verified</option>
+                </select>
               }
             />
           ) : null;
@@ -937,7 +910,7 @@ export default function SubmissionManager({
                   <FileText size={48} style={{ color: 'var(--text-secondary)', margin: '0 auto 1rem', display: 'block', opacity: 0.5 }} />
                   <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>No Submissions Found</h3>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Try clearing the search filter or selecting &quot;All Processes&quot;.
+                    Try clearing the search or status filter.
                   </p>
                 </div>
               ) : (
@@ -977,7 +950,7 @@ export default function SubmissionManager({
                             <span>ID</span>
                           </div>
                         </th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '49%' }}>Title</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '49%' }}>Form / Operator</th>
                         <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Version</th>
                         <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Submitted</th>
                         <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }} aria-label="Actions" />
@@ -992,6 +965,8 @@ export default function SubmissionManager({
                         const latestSubmitted = group.submissions[0]
                           ? formatDateOnly(group.submissions[0].submittedAt)
                           : '—';
+                        const groupMenuKey = `grp_${group.formKey}`;
+                        const isGroupMenuOpen = rowActionMenu?.key === groupMenuKey;
 
                         return (
                           <React.Fragment key={group.formKey}>
@@ -1069,40 +1044,20 @@ export default function SubmissionManager({
                                       · {group.processTitle}
                                     </span>
                                   )}
+                                  {!isExpanded && group.pendingCount > 0 && (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 500 }}>
+                                      · {group.pendingCount} pending
+                                    </span>
+                                  )}
                                 </div>
                               </td>
 
-                              <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, textAlign: 'left', verticalAlign: 'middle' }}>
-                                <div
-                                  title={group.pendingCount > 0 ? `${group.pendingCount} pending review` : undefined}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    fontSize: '0.78rem',
-                                    fontWeight: 500,
-                                    color: 'var(--text-secondary)',
-                                    fontVariantNumeric: 'tabular-nums'
-                                  }}
-                                >
-                                  <span
-                                    aria-label={group.pendingCount > 0 ? 'Pending review' : undefined}
-                                    style={{
-                                      width: '7px',
-                                      height: '7px',
-                                      borderRadius: '50%',
-                                      border: group.pendingCount > 0 ? '1.5px solid var(--warning)' : '1.5px solid transparent',
-                                      background: 'transparent',
-                                      boxSizing: 'border-box',
-                                      flexShrink: 0
-                                    }}
-                                  />
-                                  <span>{formatVersion(group.formVersion) || 'v1.0'}</span>
-                                </div>
+                              <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                                {!isExpanded ? (formatVersion(group.formVersion) || 'v1.0') : null}
                               </td>
 
                               <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, textAlign: 'left', verticalAlign: 'middle', fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 400, fontVariantNumeric: 'tabular-nums' }}>
-                                {latestSubmitted}
+                                {!isExpanded ? latestSubmitted : null}
                               </td>
 
                               <td
@@ -1110,28 +1065,24 @@ export default function SubmissionManager({
                                 onClick={e => e.stopPropagation()}
                               >
                                 <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                  <span className="dashboard-row-reveal">
-                                    <button
-                                      type="button"
-                                      title="Share"
-                                      onClick={() => handleShareLink(group)}
-                                      style={ghostActionBtnStyle}
-                                      onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                    >
-                                      <Share2 size={14} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      title="Fill"
-                                      onClick={() => handleFillNewRecord(group)}
-                                      style={ghostActionBtnStyle}
-                                      onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; e.currentTarget.style.color = 'var(--primary)'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                    >
-                                      <FilePlus size={14} />
-                                    </button>
-                                  </span>
+                                  <button
+                                    type="button"
+                                    title="More"
+                                    className={`dashboard-more-trigger ${isGroupMenuOpen ? 'is-open' : ''}`}
+                                    onClick={(e) => openRowActionMenu(e, { key: groupMenuKey, kind: 'group', group })}
+                                    style={{
+                                      ...ghostActionBtnStyle,
+                                      background: isGroupMenuOpen ? '#f1f5f9' : 'transparent',
+                                      color: isGroupMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = isGroupMenuOpen ? '#f1f5f9' : 'transparent';
+                                      e.currentTarget.style.color = isGroupMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                    }}
+                                  >
+                                    <MoreHorizontal size={15} />
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -1167,7 +1118,8 @@ export default function SubmissionManager({
                                   const isLastInGroup = subIdx === group.submissions.length - 1;
                                   const isLastOverallRow = isLastGroup && isLastInGroup;
                                   const lastCellClass = isLastInGroup ? 'dashboard-subrow-cell-last' : undefined;
-                                  const isMenuOpen = rowActionMenu?.sub.id === sub.id;
+                                  const subMenuKey = `sub_${sub.id}`;
+                                  const isMenuOpen = rowActionMenu?.key === subMenuKey;
                                   const isPending = !sub.supervisorSignoff;
 
                                   return (
@@ -1215,38 +1167,10 @@ export default function SubmissionManager({
 
                                       <td
                                         className={lastCellClass}
-                                        style={{ padding: '0.42rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}
+                                        style={{ padding: '0.42rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}
+                                        title={!isPending ? `Verified by ${sub.supervisorSignoff?.signedBy || 'Supervisor'}` : undefined}
                                       >
-                                        <div
-                                          title={
-                                            isPending
-                                              ? 'Pending review'
-                                              : `Verified by ${sub.supervisorSignoff?.signedBy || 'Supervisor'}`
-                                          }
-                                          style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '0.4rem',
-                                            fontSize: '0.78rem',
-                                            fontWeight: 400,
-                                            color: 'var(--text-muted)',
-                                            fontVariantNumeric: 'tabular-nums'
-                                          }}
-                                        >
-                                          <span
-                                            aria-label={isPending ? 'Pending review' : undefined}
-                                            style={{
-                                              width: '7px',
-                                              height: '7px',
-                                              borderRadius: '50%',
-                                              border: isPending ? '1.5px solid var(--warning)' : '1.5px solid transparent',
-                                              background: 'transparent',
-                                              boxSizing: 'border-box',
-                                              flexShrink: 0
-                                            }}
-                                          />
-                                          <span>{formatVersion(sub.formVersion || group.formVersion) || 'v1.0'}</span>
-                                        </div>
+                                        {formatVersion(sub.formVersion || group.formVersion) || 'v1.0'}
                                       </td>
 
                                       <td
@@ -1263,84 +1187,37 @@ export default function SubmissionManager({
                                       >
                                         <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                           {isPending && canVerify ? (
-                                            <>
-                                              <button
-                                                type="button"
-                                                title="Verify"
-                                                className="dashboard-fill-btn"
-                                                onClick={() => handleOpenSubmission(sub)}
-                                              >
-                                                Verify
-                                              </button>
-                                              <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
-                                                {onOpenReport && (
-                                                  <button
-                                                    type="button"
-                                                    title="Report"
-                                                    onClick={() => onOpenReport(sub.id)}
-                                                    style={ghostActionBtnStyle}
-                                                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                                  >
-                                                    <BarChart2 size={14} />
-                                                  </button>
-                                                )}
-                                                <button
-                                                  type="button"
-                                                  title="More"
-                                                  className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
-                                                  onClick={(e) => openRowActionMenu(e, sub)}
-                                                  style={{
-                                                    ...ghostActionBtnStyle,
-                                                    background: isMenuOpen ? '#e2e8f0' : 'transparent',
-                                                    color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
-                                                  }}
-                                                  onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                                  onMouseLeave={e => {
-                                                    e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
-                                                    e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                                                  }}
-                                                >
-                                                  <MoreHorizontal size={15} />
-                                                </button>
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              {onOpenReport && (
-                                                <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
-                                                  <button
-                                                    type="button"
-                                                    title="Report"
-                                                    onClick={() => onOpenReport(sub.id)}
-                                                    style={ghostActionBtnStyle}
-                                                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                                  >
-                                                    <BarChart2 size={14} />
-                                                  </button>
-                                                </span>
-                                              )}
-                                              <button
-                                                type="button"
-                                                title="More"
-                                                className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
-                                                onClick={(e) => openRowActionMenu(e, sub)}
-                                                style={{
-                                                  ...ghostActionBtnStyle,
-                                                  background: isMenuOpen ? '#e2e8f0' : 'transparent',
-                                                  color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                                onMouseLeave={e => {
-                                                  e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
-                                                  e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                                                }}
-                                              >
-                                                <MoreHorizontal size={15} />
-                                              </button>
-                                            </>
-                                          )}
+                                            <button
+                                              type="button"
+                                              title="Verify"
+                                              className="dashboard-fill-btn"
+                                              onClick={() => handleOpenSubmission(sub)}
+                                            >
+                                              Verify
+                                            </button>
+                                          ) : isPending ? (
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingRight: '0.25rem' }}>
+                                              Pending
+                                            </span>
+                                          ) : null}
+                                          <button
+                                            type="button"
+                                            title="More"
+                                            className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                                            onClick={(e) => openRowActionMenu(e, { key: subMenuKey, kind: 'submission', sub })}
+                                            style={{
+                                              ...ghostActionBtnStyle,
+                                              background: isMenuOpen ? '#e2e8f0' : 'transparent',
+                                              color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                            onMouseLeave={e => {
+                                              e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
+                                              e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                            }}
+                                          >
+                                            <MoreHorizontal size={15} />
+                                          </button>
                                         </div>
                                       </td>
                                     </tr>
@@ -1360,7 +1237,7 @@ export default function SubmissionManager({
         })()}
       </div>
 
-      {/* Portal Overflow Menu for Submission Row Actions */}
+      {/* Portal Overflow Menu for Group & Submission Row Actions */}
       {rowActionMenu && ReactDOM.createPortal(
         <div
           onClick={e => e.stopPropagation()}
@@ -1370,7 +1247,7 @@ export default function SubmissionManager({
             bottom: rowActionMenu.openUpward ? `${window.innerHeight - rowActionMenu.top}px` : undefined,
             right: `${rowActionMenu.right}px`,
             zIndex: 9998,
-            minWidth: '176px',
+            minWidth: '148px',
             background: '#ffffff',
             border: '1px solid var(--neutral-border)',
             borderRadius: '8px',
@@ -1381,74 +1258,14 @@ export default function SubmissionManager({
             gap: '2px'
           }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              const target = rowActionMenu.sub;
-              setRowActionMenu(null);
-              handleDuplicateSubmission(target);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: '100%',
-              padding: '0.45rem 0.65rem',
-              border: 'none',
-              borderRadius: '6px',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              textAlign: 'left',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
-            <span>Duplicate</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              const target = rowActionMenu.sub;
-              setRowActionMenu(null);
-              const full = await fetchFullSubmission(target);
-              setPrintSubmission(full);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: '100%',
-              padding: '0.45rem 0.65rem',
-              border: 'none',
-              borderRadius: '6px',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              textAlign: 'left',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            <Printer size={13} style={{ color: 'var(--text-secondary)' }} />
-            <span>Print</span>
-          </button>
-
-          {currentUser?.role_id === 'admin' && (
+          {rowActionMenu.kind === 'group' ? (
             <>
-              <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
               <button
                 type="button"
                 onClick={() => {
-                  const target = rowActionMenu.sub;
+                  const target = rowActionMenu.group;
                   setRowActionMenu(null);
-                  setSubmissionToDelete(target);
+                  handleFillNewRecord(target);
                 }}
                 style={{
                   display: 'flex',
@@ -1459,18 +1276,173 @@ export default function SubmissionManager({
                   border: 'none',
                   borderRadius: '6px',
                   background: 'transparent',
-                  color: 'var(--danger, #dc2626)',
+                  color: 'var(--text-primary)',
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   textAlign: 'left',
                   cursor: 'pointer'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <Trash2 size={13} />
-                <span>Delete</span>
+                <FilePlus size={13} style={{ color: 'var(--text-secondary)' }} />
+                <span>Fill</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = rowActionMenu.group;
+                  setRowActionMenu(null);
+                  handleShareLink(target);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Share2 size={13} style={{ color: 'var(--text-secondary)' }} />
+                <span>Share</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {onOpenReport && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.sub;
+                    setRowActionMenu(null);
+                    onOpenReport(target.id);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <BarChart2 size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Report</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = rowActionMenu.sub;
+                  setRowActionMenu(null);
+                  handleDuplicateSubmission(target);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
+                <span>Duplicate</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const target = rowActionMenu.sub;
+                  setRowActionMenu(null);
+                  const full = await fetchFullSubmission(target);
+                  setPrintSubmission(full);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Printer size={13} style={{ color: 'var(--text-secondary)' }} />
+                <span>Print</span>
+              </button>
+
+              {currentUser?.role_id === 'admin' && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = rowActionMenu.sub;
+                      setRowActionMenu(null);
+                      setSubmissionToDelete(target);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'var(--danger, #dc2626)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>,

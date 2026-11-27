@@ -119,7 +119,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [submissionSearchTerm, setSubmissionSearchTerm] = useState(initialFormFilter || '');
-  const [submissionProcessFilter, setSubmissionProcessFilter] = useState<string>('ALL');
   const [submissionSignoffFilter, setSubmissionSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
 
   useEffect(() => {
@@ -1327,30 +1326,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
           filters={
             viewMode === 'submissions' ? (
-              <>
-                <select
-                  aria-label="Filter by process"
-                  value={submissionProcessFilter}
-                  onChange={(e) => setSubmissionProcessFilter(e.target.value)}
-                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', maxWidth: '185px', boxSizing: 'border-box', outline: 'none' }}
-                >
-                  <option value="ALL">All Processes</option>
-                  {processes.filter(p => p.id !== 'unlinked').map(p => (
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                  <option value="unlinked">Standalone Forms</option>
-                </select>
-                <select
-                  aria-label="Filter by review status"
-                  value={submissionSignoffFilter}
-                  onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
-                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="PENDING">Pending Review</option>
-                  <option value="VERIFIED">Verified</option>
-                </select>
-              </>
+              <select
+                aria-label="Filter by review status"
+                value={submissionSignoffFilter}
+                onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
+                style={{ width: 'auto', height: '36px', padding: '0 0.65rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending Review</option>
+                <option value="VERIFIED">Verified</option>
+              </select>
             ) : undefined
           }
           actions={
@@ -1493,7 +1478,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           cachedProcesses={processes}
           cachedForms={allForms}
           externalSearchTerm={submissionSearchTerm}
-          externalProcessFilter={submissionProcessFilter}
           externalSignoffFilter={submissionSignoffFilter}
           onBack={() => {
             setSubmissionSearchTerm('');
