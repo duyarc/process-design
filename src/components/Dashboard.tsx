@@ -41,40 +41,6 @@ const formatCleanVersion = (raw?: string): string => {
   return clean ? `v${clean}` : 'v0.1';
 };
 
-const renderStatusBadge = (rawStatus?: string) => {
-  const key = (rawStatus || 'Active').trim();
-  const map: Record<string, { label: string; dot: string; bg: string; text: string; border: string }> = {
-    ACTIVE: { label: 'Active', dot: '#10b981', bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
-    Active: { label: 'Active', dot: '#10b981', bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' },
-    DRAFT: { label: 'Draft', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-    Draft: { label: 'Draft', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-    'Pending Review': { label: 'Pending Review', dot: '#f59e0b', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
-    Superseded: { label: 'Superseded', dot: '#64748b', bg: '#f8fafc', text: '#475569', border: '#e2e8f0' },
-    Retired: { label: 'Retired', dot: '#ef4444', bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' }
-  };
-  const badge = map[key] || { label: key, dot: '#64748b', bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        padding: '0.15rem 0.55rem',
-        borderRadius: '999px',
-        fontSize: '0.73rem',
-        fontWeight: 600,
-        background: badge.bg,
-        color: badge.text,
-        border: `1px solid ${badge.border}`,
-        whiteSpace: 'nowrap'
-      }}
-    >
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: badge.dot, flexShrink: 0 }} />
-      <span>{badge.label}</span>
-    </span>
-  );
-};
-
 const renderPreattentiveVersion = (
   statusRaw?: string,
   currentVersionStr?: string,
@@ -115,7 +81,8 @@ const renderPreattentiveVersion = (
 
 type RowActionMenuState =
   | { key: string; kind: 'process'; proc: Process; top: number; right: number; openUpward: boolean }
-  | { key: string; kind: 'form'; form: any; processId: string; top: number; right: number; openUpward: boolean };
+  | { key: string; kind: 'form'; form: any; processId: string; top: number; right: number; openUpward: boolean }
+  | { key: string; kind: 'report'; report: ReportTemplateISO; top: number; right: number; openUpward: boolean };
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
   onSelectProcess, 
@@ -221,6 +188,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     payload:
       | { key: string; kind: 'process'; proc: Process }
       | { key: string; kind: 'form'; form: any; processId: string }
+      | { key: string; kind: 'report'; report: ReportTemplateISO }
   ) => {
     e.stopPropagation();
     if (rowActionMenu?.key === payload.key) {
@@ -1389,62 +1357,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
       )}
 
-      {(viewMode === 'submissions' || viewMode === 'trash') && (
+      {viewMode === 'trash' && (
         <DashboardToolbar
-          searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
-          onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
-          placeholder={
-            viewMode === 'submissions'
-              ? 'Search submissions...'
-              : 'Search trash by ID, title, or deleted by...'
-          }
-          filters={
-            viewMode === 'submissions' ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
-                  <select 
-                    value={submissionProcessFilter}
-                    onChange={(e) => setSubmissionProcessFilter(e.target.value)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Processes</option>
-                    {processes.filter(p => p.id !== 'unlinked').map(p => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                    <option value="unlinked">Standalone Forms</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
-                  <select 
-                    value={submissionSignoffFilter}
-                    onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="PENDING">Pending Review</option>
-                    <option value="VERIFIED">Verified</option>
-                  </select>
-                </div>
-              </>
-            ) : undefined
-          }
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder="Search trash by ID, title, or deleted by..."
           actions={
-            viewMode === 'trash' ? (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  onViewModeChange && onViewModeChange(lastActiveTab);
-                  setSearchQuery('');
-                }}
-                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <ArrowLeft size={15} />
-                Back
-              </button>
-            ) : undefined
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                onViewModeChange && onViewModeChange(lastActiveTab);
+                setSearchQuery('');
+              }}
+              style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <ArrowLeft size={15} />
+              Back
+            </button>
           }
         />
       )}
@@ -1460,10 +1390,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <p>Loading processes database...</p>
         </div>
       ) : viewMode === 'submissions' ? (
-        <SubmissionManager 
-          isEmbedded={true} 
+        <SubmissionManager
+          isEmbedded={true}
           hideToolbar={true}
-          initialFormFilter={initialFormFilter} 
+          headerSlot={
+            <DashboardToolbar
+              embedded
+              searchQuery={submissionSearchTerm}
+              onSearchChange={setSubmissionSearchTerm}
+              placeholder="Search submissions..."
+              filters={
+                <>
+                  <select
+                    aria-label="Filter by process"
+                    value={submissionProcessFilter}
+                    onChange={(e) => setSubmissionProcessFilter(e.target.value)}
+                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
+                  >
+                    <option value="ALL">All Processes</option>
+                    {processes.filter(p => p.id !== 'unlinked').map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                    <option value="unlinked">Standalone Forms</option>
+                  </select>
+                  <select
+                    aria-label="Filter by review status"
+                    value={submissionSignoffFilter}
+                    onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
+                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="PENDING">Pending Review</option>
+                    <option value="VERIFIED">Verified</option>
+                  </select>
+                </>
+              }
+            />
+          }
+          initialFormFilter={initialFormFilter}
           cachedProcesses={processes}
           cachedForms={allForms}
           externalSearchTerm={submissionSearchTerm}
@@ -1472,7 +1436,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onBack={() => {
             setSubmissionSearchTerm('');
             onClearFormFilter?.();
-          }} 
+          }}
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
           onOpenFormFiller={onOpenFormFiller}
@@ -1519,7 +1483,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <Plus size={16} />
-                    New Report Template
+                    New Report
                   </button>
                 ) : undefined
               }
@@ -1546,7 +1510,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   ) : (
                     onOpenReportBuilder && (
                       <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
-                        <Plus size={16} /> New Report Template
+                        <Plus size={16} /> New Report
                       </button>
                     )
                   )}
@@ -1571,12 +1535,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                      <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Report ID</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Report Title</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '22%' }}>Source Form</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '10%' }}>Version</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
-                      <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }} aria-label="Actions" />
+                      <th style={{ padding: '0.6rem 0.5rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>ID</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '44%' }}>Title</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '19%' }}>Source Form</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Version</th>
+                      <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -1584,73 +1547,85 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       const status = rep.status || 'DRAFT';
                       const srcForm = formsList.find(f => f.formId === rep.linkedFormId);
                       const srcTitle = srcForm?.formTitle;
+                      const normSrc = (srcTitle || '').toLowerCase().replace(/[\s_-]+/g, '');
+                      const normFid = (rep.linkedFormId || '').toLowerCase().replace(/[\s_-]+/g, '');
+                      const repMenuKey = `rep_${rep.reportId}_${rep.version}`;
+                      const isMenuOpen = rowActionMenu?.key === repMenuKey;
+                      const hasReportMenuItems = Boolean(onOpenReportBuilder || hasPermission('design_document'));
 
                       return (
                         <tr
                           key={rep.reportId + rep.version}
+                          className="dashboard-tree-row"
                           onClick={() => onOpenReportBuilder && onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
                           style={{
                             borderBottom: idx === filteredReports.length - 1 ? 'none' : '1px solid var(--neutral-border)',
-                            transition: 'background 0.15s',
                             cursor: onOpenReportBuilder ? 'pointer' : 'default'
                           }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                          <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                          <td style={{ padding: '0.75rem 0.5rem 0.75rem 1rem', verticalAlign: 'middle' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                               {rep.reportId}
                             </span>
                           </td>
-                          <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <td style={{ padding: '0.75rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, fontSize: '0.9rem', letterSpacing: '-0.01em', color: 'var(--text-primary)' }}>
                             {rep.reportTitle}
                           </td>
-                          <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                              {srcTitle && srcTitle.toLowerCase() !== (rep.linkedFormId || '').toLowerCase() && (
-                                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)' }}>{srcTitle}</span>
+                          <td style={{ padding: '0.75rem 0.75rem', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                              {srcTitle ? (
+                                <>
+                                  <span style={{ fontSize: '0.84rem', fontWeight: 400, color: 'var(--text-secondary)' }}>{srcTitle}</span>
+                                  {normSrc !== normFid && rep.linkedFormId && (
+                                    <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                      · {rep.linkedFormId}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                  {rep.linkedFormId}
+                                </span>
                               )}
-                              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.12rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                                {rep.linkedFormId}
-                              </span>
                             </div>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                            {formatCleanVersion(rep.version)}
+                          <td style={{ padding: '0.75rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
+                            {renderPreattentiveVersion(status, rep.version, undefined, true)}
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
-                            {renderStatusBadge(status)}
-                          </td>
-                          <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+                          <td style={{ padding: '0.62rem 1rem 0.62rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                               {onOpenReportBuilder && (
-                                <button
-                                  type="button"
-                                  style={ghostActionBtnStyle}
-                                  title="Edit"
-                                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                  onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
-                                >
-                                  <Edit2 size={14} />
-                                </button>
+                                <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
+                                  <button
+                                    type="button"
+                                    style={ghostActionBtnStyle}
+                                    title="Edit"
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                    onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                </span>
                               )}
-                              {hasPermission('design_document') && (
+                              {hasReportMenuItems && (
                                 <button
                                   type="button"
-                                  style={ghostActionBtnStyle}
-                                  title="Delete"
-                                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                  onClick={() => setDeleteTarget({
-                                    entityType: 'report',
-                                    id: rep.reportId,
-                                    title: rep.reportTitle,
-                                    version: rep.version,
-                                    note: 'This report template will be moved to Trash and can be restored anytime.'
-                                  })}
+                                  title="More"
+                                  className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                                  onClick={(e) => openRowActionMenu(e, { key: repMenuKey, kind: 'report', report: rep })}
+                                  style={{
+                                    ...ghostActionBtnStyle,
+                                    background: isMenuOpen ? '#f1f5f9' : 'transparent',
+                                    color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                  }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.background = isMenuOpen ? '#f1f5f9' : 'transparent';
+                                    e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                                  }}
                                 >
-                                  <Trash2 size={14} />
+                                  <MoreHorizontal size={15} />
                                 </button>
                               )}
                             </div>
@@ -1896,7 +1871,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </>
               )}
             </>
-          ) : (
+          ) : rowActionMenu.kind === 'form' ? (
             <>
               {onViewFormSubmissions && (
                 <button
@@ -2033,6 +2008,80 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span>Delete</span>
                   </button>
                 </>
+              )}
+            </>
+          ) : (
+            <>
+              {onOpenReportBuilder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.report;
+                    setRowActionMenu(null);
+                    onOpenReportBuilder(target.linkedFormId, target.reportId);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Edit2 size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Edit</span>
+                </button>
+              )}
+
+              {onOpenReportBuilder && hasPermission('design_document') && (
+                <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+              )}
+
+              {hasPermission('design_document') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.report;
+                    setRowActionMenu(null);
+                    setDeleteTarget({
+                      entityType: 'report',
+                      id: target.reportId,
+                      title: target.reportTitle,
+                      version: target.version,
+                      note: 'This report template will be stored in Trash and can be restored anytime.'
+                    });
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--danger, #dc2626)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Trash2 size={13} />
+                  <span>Delete</span>
+                </button>
               )}
             </>
           )}
