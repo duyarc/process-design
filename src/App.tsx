@@ -650,7 +650,7 @@ const GOOGLE_CLIENT_ID =
 
 const App: React.FC = () => {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID} locale="en">
       <AuthProvider>
         <MainApp />
       </AuthProvider>

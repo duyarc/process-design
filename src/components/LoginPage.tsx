@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Lock, User, Mail, AlertCircle, ArrowLeft, FileText } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
@@ -21,6 +21,10 @@ const LoginPage: React.FC = () => {
   // Fill link context details
   const [fillContext, setFillContext] = useState<{ processId: string; formName: string } | null>(null);
 
+  // Keep Google Sign-In button aligned with input/CTA width across viewports
+  const googleBtnWrapperRef = useRef<HTMLDivElement>(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState<number>(340);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const qPage = params.get('page');
@@ -32,6 +36,26 @@ const LoginPage: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const el = googleBtnWrapperRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const updateWidth = (rawWidth: number) => {
+      const clamped = Math.max(240, Math.min(340, Math.floor(rawWidth)));
+      setGoogleBtnWidth((prev) => (prev === clamped ? prev : clamped));
+    };
+
+    updateWidth(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        updateWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [step]);
+
   // Step 1: Check Email
   const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +63,7 @@ const LoginPage: React.FC = () => {
 
     const clean = email.trim().toLowerCase();
     if (!clean) {
-      setError('Vui lòng nhập địa chỉ email hoặc tên đăng nhập.');
+      setError('Please enter your email address or username.');
       return;
     }
 
@@ -52,7 +76,7 @@ const LoginPage: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Kiểm tra tài khoản thất bại.');
+        throw new Error(data.error || 'Unable to verify account.');
       }
 
       if (data.exists) {
@@ -60,14 +84,15 @@ const LoginPage: React.FC = () => {
         setStep('LOGIN');
       } else {
         if (!clean.includes('@')) {
-          setError('Email mới cần đúng định dạng (vd: user@company.com).');
+          setError('New accounts require a valid email address (e.g. name@company.com).');
           setIsLoading(false);
           return;
         }
         setStep('REGISTER');
       }
-    } catch (err: any) {
-      setError(err.message || 'Không thể kết nối đến máy chủ.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unable to connect to the server.';
+      setError(message || 'Unable to connect to the server.');
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +104,7 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     if (!password.trim()) {
-      setError('Vui lòng nhập mật khẩu.');
+      setError('Please enter your password.');
       return;
     }
 
@@ -87,8 +112,8 @@ const LoginPage: React.FC = () => {
     try {
       const err = await login(email.trim(), password);
       if (err) setError(err);
-    } catch (err: any) {
-      setError('Đăng nhập thất bại. Vui lòng kiểm tra kết nối.');
+    } catch {
+      setError('Sign-in failed. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -100,19 +125,19 @@ const LoginPage: React.FC = () => {
     setError(null);
 
     if (!fullName.trim()) {
-      setError('Vui lòng nhập họ và tên của bạn.');
+      setError('Please enter your full name.');
       return;
     }
     if (!password) {
-      setError('Vui lòng nhập mật khẩu mới.');
+      setError('Please enter a password.');
       return;
     }
     if (password.length < 6) {
-      setError('Mật khẩu cần ít nhất 6 ký tự.');
+      setError('Password must be at least 6 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không trùng khớp.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -120,8 +145,8 @@ const LoginPage: React.FC = () => {
     try {
       const err = await register(email.trim().toLowerCase(), fullName.trim(), password);
       if (err) setError(err);
-    } catch (err: any) {
-      setError('Tạo tài khoản thất bại. Vui lòng kiểm tra kết nối.');
+    } catch {
+      setError('Account creation failed. Please check your connection.');
     } finally {
       setIsLoading(false);
     }
@@ -135,482 +160,354 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'var(--neutral-bg)',
-      fontFamily: "'Be Vietnam Pro', var(--font-sans, Inter, system-ui, sans-serif)",
-      padding: '1.5rem',
-    }}>
-      {/* Executive Paper Card */}
-      <div style={{
-        width: '100%',
-        maxWidth: '420px',
-        background: 'var(--neutral-card)',
-        border: '1px solid var(--neutral-border)',
-        borderTop: '4px solid var(--primary)',
-        borderRadius: 'var(--container-radius, 16px)',
-        padding: '2.5rem 2rem',
-        boxShadow: 'var(--shadow-lg)',
-        position: 'relative'
-      }}>
-        {/* Back button if in step 2 */}
-        {step !== 'EMAIL' && (
-          <button
-            type="button"
-            onClick={handleReset}
-            style={{
-              position: 'absolute', left: '1.5rem', top: '1.5rem',
-              background: '#f1f5f9', border: '1px solid var(--neutral-border)',
-              color: 'var(--text-secondary)', borderRadius: '6px', padding: '0.35rem 0.6rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
-              fontSize: '0.78rem', fontWeight: 500, transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#e2e8f0';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = '#f1f5f9';
-              e.currentTarget.style.color = 'var(--text-secondary)';
-            }}
-          >
-            <ArrowLeft size={14} /> Quay lại
-          </button>
-        )}
-
-        {/* Logo Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '56px', height: '56px',
-            background: 'var(--primary-gradient)',
-            borderRadius: '14px',
-            marginBottom: '0.75rem',
-            boxShadow: '0 8px 20px rgba(16, 163, 163, 0.25)',
-          }}>
-            <BookOpen size={26} color="#fff" />
-          </div>
-          <h1 style={{
-            margin: 0, fontSize: '1.4rem', fontWeight: 700,
-            background: 'var(--primary-gradient)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            Process Design
-          </h1>
-          <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            {step === 'EMAIL' && 'Đăng nhập hoặc tạo tài khoản để tiếp tục'}
-            {step === 'LOGIN' && `Chào mừng trở lại ${existingUserFullName ? `, ${existingUserFullName}` : ''}`}
-            {step === 'REGISTER' && 'Tạo tài khoản mới để điền & lưu biểu mẫu'}
-          </p>
+    <div className="signin-page">
+      <div className="signin-shell">
+        <div className="signin-brand">
+          <BookOpen size={22} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <span>Process Design</span>
         </div>
 
-        {/* Form Link Notice Banner (If accessing via share link) */}
-        {fillContext && (
-          <div style={{
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            padding: '0.65rem 0.85rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.6rem',
-            fontSize: '0.8rem',
-            color: '#1e40af'
-          }}>
-            <FileText size={18} style={{ flexShrink: 0, color: '#3b82f6' }} />
-            <div>
-              <div style={{ fontWeight: 600, color: '#1e3a8a' }}>Bạn được mời điền biểu mẫu</div>
-              <div style={{ fontSize: '0.72rem', color: '#3b82f6' }}>Mẫu: {fillContext.formName} ({fillContext.processId})</div>
-            </div>
-          </div>
-        )}
+        <figure className="signin-principle">
+          <blockquote>
+            “We believe <strong>common sense</strong> and <strong>simplicity</strong> are usually better guidelines than unnecessary sophistication and complexity.”
+          </blockquote>
+          <figcaption>
+            — AB InBev’s 7<sup>th</sup> principle
+          </figcaption>
+        </figure>
 
-        {/* STEP 1: EMAIL ENTRY */}
-        {step === 'EMAIL' && (
-          <form onSubmit={handleCheckEmail} noValidate>
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                Địa chỉ Email / Tên đăng nhập
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} style={{
-                  position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }} />
-                <input
-                  id="login-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  autoComplete="email"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0.65rem 0.85rem 0.65rem 2.4rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    transition: 'all 0.2s',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary)';
-                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-            </div>
+        <div className="signin-card">
+          {step === 'EMAIL' && (
+            <h1 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Sign in
+            </h1>
+          )}
 
-            {error && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
-              }}>
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                {error}
-              </div>
-            )}
+          {step === 'LOGIN' && (
+            <>
+              <button type="button" className="signin-back-btn" onClick={handleReset}>
+                <ArrowLeft size={14} /> Back
+              </button>
+              <h1 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Welcome back{existingUserFullName ? `, ${existingUserFullName}` : ''}
+              </h1>
+            </>
+          )}
 
-            <button
-              id="login-continue"
-              type="submit"
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: isLoading ? '#94a3b8' : 'var(--primary-gradient)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
-              }}
-            >
-              {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục →'}
-            </button>
+          {step === 'REGISTER' && (
+            <>
+              <button type="button" className="signin-back-btn" onClick={handleReset}>
+                <ArrowLeft size={14} /> Back
+              </button>
+              <h1 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Create account
+              </h1>
+            </>
+          )}
 
-            {/* OR separator */}
+          {/* Form Link Notice Banner (If accessing via share link) */}
+          {fillContext && (
             <div style={{
-              display: 'flex', alignItems: 'center', margin: '1.25rem 0',
-              fontSize: '0.75rem', color: 'var(--text-muted)',
-              fontFamily: 'inherit'
+              background: 'var(--neutral-bg)',
+              border: '1px solid var(--neutral-border)',
+              borderLeft: '2px solid var(--primary)',
+              borderRadius: '6px',
+              padding: '0.6rem 0.8rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontSize: '0.8rem',
+              color: 'var(--text-primary)'
             }}>
-              <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
-              <span style={{ padding: '0 0.75rem' }}>HOẶC</span>
-              <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
+              <FileText size={16} style={{ flexShrink: 0, color: 'var(--primary)' }} />
+              <div>
+                <div style={{ fontWeight: 600 }}>Form invitation</div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                  {fillContext.formName} ({fillContext.processId})
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Google Login button */}
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }} id="login-google-btn">
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
-                  if (credentialResponse.credential) {
-                    setIsLoading(true);
-                    setError(null);
-                    try {
-                      const err = await loginWithGoogle(credentialResponse.credential);
-                      if (err) setError(err);
-                    } catch (err: any) {
-                      setError('Đăng nhập Google thất bại.');
-                    } finally {
-                      setIsLoading(false);
+          {/* STEP 1: EMAIL ENTRY */}
+          {step === 'EMAIL' && (
+            <form onSubmit={handleCheckEmail} noValidate>
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="login-email"
+                  style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}
+                >
+                  Email or username
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={15} style={{
+                    position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)', pointerEvents: 'none'
+                  }} />
+                  <input
+                    id="login-email"
+                    className="signin-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  borderRadius: '6px', padding: '0.55rem 0.75rem',
+                  marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.8rem',
+                }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  {error}
+                </div>
+              )}
+
+              <button
+                id="login-continue"
+                className="signin-primary-btn"
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Checking...' : 'Continue'}
+              </button>
+
+              {/* Hairline separator */}
+              <div style={{
+                display: 'flex', alignItems: 'center', margin: '1.15rem 0',
+                fontSize: '0.75rem', color: 'var(--text-muted)',
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
+                <span style={{ padding: '0 0.75rem' }}>or</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
+              </div>
+
+              {/* Google Login button */}
+              <div
+                ref={googleBtnWrapperRef}
+                style={{ display: 'flex', justifyContent: 'center', width: '100%' }}
+                id="login-google-btn"
+              >
+                <GoogleLogin
+                  onSuccess={async (credentialResponse) => {
+                    if (credentialResponse.credential) {
+                      setIsLoading(true);
+                      setError(null);
+                      try {
+                        const err = await loginWithGoogle(credentialResponse.credential);
+                        if (err) setError(err);
+                      } catch {
+                        setError('Google sign-in failed.');
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }
-                  }
-                }}
-                onError={() => {
-                  setError('Xác thực tài khoản Google thất bại.');
-                }}
-                theme="filled_blue"
-                shape="pill"
-                text="signin_with"
-                width="336px"
-              />
-            </div>
-          </form>
-        )}
-
-        {/* STEP 2A: LOGIN WITH PASSWORD */}
-        {step === 'LOGIN' && (
-          <form onSubmit={handleLoginSubmit} noValidate>
-            <div style={{
-              fontSize: '0.8rem', color: 'var(--text-secondary)',
-              background: '#f8fafc', border: '1px solid var(--neutral-border)',
-              padding: '0.5rem 0.75rem', borderRadius: '8px', marginBottom: '1.25rem',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 600 }}>{email}</span>
-              <button
-                type="button"
-                onClick={handleReset}
-                style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                Đổi
-              </button>
-            </div>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-                Mật khẩu
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{
-                  position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }} />
-                <input
-                  id="login-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0.65rem 0.85rem 0.65rem 2.4rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    transition: 'all 0.2s',
                   }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary)';
-                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  onError={() => {
+                    setError('Google authentication failed.');
                   }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
+                  theme="outline"
+                  shape="rectangular"
+                  size="large"
+                  text="signin_with"
+                  width={String(googleBtnWidth)}
                 />
               </div>
-            </div>
+            </form>
+          )}
 
-            {error && (
+          {/* STEP 2A: LOGIN WITH PASSWORD */}
+          {step === 'LOGIN' && (
+            <form onSubmit={handleLoginSubmit} noValidate>
               <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
+                fontSize: '0.8rem', color: 'var(--text-secondary)',
+                background: 'var(--neutral-bg)', border: '1px solid var(--neutral-border)',
+                padding: '0.5rem 0.75rem', borderRadius: '6px', marginBottom: '1rem',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem'
               }}>
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                {error}
+                <span style={{ fontFamily: 'monospace', color: 'var(--text-primary)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {email}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Change
+                </button>
               </div>
-            )}
 
-            <button
-              id="login-submit"
-              type="submit"
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: isLoading ? '#94a3b8' : 'var(--primary-gradient)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
-              }}
-            >
-              {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
-            </button>
-          </form>
-        )}
+              <div style={{ marginBottom: '1rem' }}>
+                <label
+                  htmlFor="login-password"
+                  style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}
+                >
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={{
+                    position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)', pointerEvents: 'none'
+                  }} />
+                  <input
+                    id="login-password"
+                    className="signin-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    autoFocus
+                  />
+                </div>
+              </div>
 
-        {/* STEP 2B: SELF-SERVICE REGISTER */}
-        {step === 'REGISTER' && (
-          <form onSubmit={handleRegisterSubmit} noValidate>
-            <div style={{
-              fontSize: '0.78rem', color: 'var(--text-secondary)',
-              background: '#f8fafc', border: '1px solid var(--neutral-border)',
-              padding: '0.5rem 0.75rem', borderRadius: '8px', marginBottom: '1rem',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <span>Đăng ký tài khoản cho: <strong style={{ color: 'var(--primary)' }}>{email}</strong></span>
+              {error && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  borderRadius: '6px', padding: '0.55rem 0.75rem',
+                  marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.8rem',
+                }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  {error}
+                </div>
+              )}
+
               <button
-                type="button"
-                onClick={handleReset}
-                style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                id="login-submit"
+                className="signin-primary-btn"
+                type="submit"
+                disabled={isLoading}
               >
-                Đổi
+                {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
-            </div>
+            </form>
+          )}
 
-            {/* Full Name */}
-            <div style={{ marginBottom: '0.9rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Họ và tên của bạn *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} style={{
-                  position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }} />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary)';
-                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div style={{ marginBottom: '0.9rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Mật khẩu mới *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{
-                  position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }} />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Tối thiểu 6 ký tự"
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary)';
-                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Xác nhận mật khẩu *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{
-                  position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }} />
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Nhập lại mật khẩu mới"
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.85rem',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary)';
-                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#cbd5e1';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-            </div>
-
-            {error && (
+          {/* STEP 2B: SELF-SERVICE REGISTER */}
+          {step === 'REGISTER' && (
+            <form onSubmit={handleRegisterSubmit} noValidate>
               <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
+                fontSize: '0.78rem', color: 'var(--text-secondary)',
+                background: 'var(--neutral-bg)', border: '1px solid var(--neutral-border)',
+                padding: '0.5rem 0.75rem', borderRadius: '6px', marginBottom: '1rem',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem'
               }}>
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                {error}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  Creating account for <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Change
+                </button>
               </div>
-            )}
 
-            <button
-              id="register-submit"
-              type="submit"
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: isLoading ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
-              }}
-            >
-              {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản & Tiếp tục →'}
-            </button>
-          </form>
-        )}
+              {/* Full Name */}
+              <div style={{ marginBottom: '0.9rem' }}>
+                <label
+                  htmlFor="register-fullname"
+                  style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}
+                >
+                  Full name
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <User size={15} style={{
+                    position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)', pointerEvents: 'none'
+                  }} />
+                  <input
+                    id="register-fullname"
+                    className="signin-input"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="e.g. Alex Nguyen"
+                    autoFocus
+                  />
+                </div>
+              </div>
 
+              {/* Password */}
+              <div style={{ marginBottom: '0.9rem' }}>
+                <label
+                  htmlFor="register-password"
+                  style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}
+                >
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={{
+                    position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)', pointerEvents: 'none'
+                  }} />
+                  <input
+                    id="register-password"
+                    className="signin-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div style={{ marginBottom: '1.15rem' }}>
+                <label
+                  htmlFor="register-confirm-password"
+                  style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}
+                >
+                  Confirm password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={15} style={{
+                    position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)', pointerEvents: 'none'
+                  }} />
+                  <input
+                    id="register-confirm-password"
+                    className="signin-input"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter password"
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  borderRadius: '6px', padding: '0.55rem 0.75rem',
+                  marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.8rem',
+                }}>
+                  <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                  {error}
+                </div>
+              )}
+
+              <button
+                id="register-submit"
+                className="signin-primary-btn"
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating account...' : 'Create account'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
