@@ -78,7 +78,8 @@ const renderStatusBadge = (rawStatus?: string) => {
 const renderPreattentiveVersion = (
   statusRaw?: string,
   currentVersionStr?: string,
-  selectNode?: React.ReactNode
+  selectNode?: React.ReactNode,
+  isParent = true
 ) => {
   const norm = (statusRaw || 'Active').trim().toUpperCase();
   const isDraft = norm === 'DRAFT' || norm === 'PENDING REVIEW';
@@ -90,18 +91,20 @@ const renderPreattentiveVersion = (
         alignItems: 'center',
         gap: '0.4rem',
         fontSize: '0.78rem',
-        fontWeight: 500,
-        color: 'var(--text-secondary)',
+        fontWeight: isParent ? 500 : 400,
+        color: isParent ? 'var(--text-secondary)' : 'var(--text-muted)',
         fontVariantNumeric: 'tabular-nums'
       }}
     >
       <span
         aria-label={isDraft ? 'Draft' : undefined}
         style={{
-          width: '6px',
-          height: '6px',
+          width: '7px',
+          height: '7px',
           borderRadius: '50%',
-          background: isDraft ? 'var(--warning)' : 'transparent',
+          border: isDraft ? '1.5px solid var(--warning)' : '1.5px solid transparent',
+          background: 'transparent',
+          boxSizing: 'border-box',
           flexShrink: 0
         }}
       />
@@ -791,12 +794,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const renderFormSubRow = (form: any, procId: string, isLastInGroup: boolean, isLastOverallRow: boolean) => {
+  const renderFormSubRow = (
+    form: any,
+    procId: string,
+    isFirstInGroup: boolean,
+    isLastInGroup: boolean,
+    isLastOverallRow: boolean
+  ) => {
     const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
     const formattedDate = formatStandardDate(rawDate);
     const menuKey = `form_${procId}_${form.formId}`;
     const isMenuOpen = rowActionMenu?.key === menuKey;
     const hasFormMenuItems = Boolean(onViewFormSubmissions || hasPermission('design_document'));
+    const lastCellClass = isLastInGroup ? 'dashboard-subrow-cell-last' : undefined;
 
     const versionSelect = formsGroupedById[form.formId] && formsGroupedById[form.formId].length > 1 ? (
       <select
@@ -815,8 +825,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           margin: 0,
           width: 'auto',
           fontSize: '0.78rem',
-          fontWeight: 500,
-          color: 'var(--text-secondary)',
+          fontWeight: 400,
+          color: 'var(--text-muted)',
           cursor: 'pointer',
           outline: 'none'
         }}
@@ -841,55 +851,56 @@ export const Dashboard: React.FC<DashboardProps> = ({
             ? 'none'
             : isLastInGroup
               ? '1px solid var(--neutral-border)'
-              : '1px solid rgba(0, 0, 0, 0.04)',
+              : 'none',
           cursor: 'pointer'
         }}
       >
-        <td style={{ padding: '0.52rem 0.5rem 0.52rem 1.75rem', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <span
-              aria-hidden="true"
-              style={{
-                width: '10px',
-                height: '10px',
-                borderLeft: '1.5px solid #cbd5e1',
-                borderBottom: '1.5px solid #cbd5e1',
-                borderBottomLeftRadius: '3px',
-                flexShrink: 0,
-                marginTop: '-3px'
-              }}
-            />
-            <span
-              title={form.formId}
-              style={{
-                fontSize: '0.76rem',
-                fontWeight: 500,
-                color: 'var(--text-muted)',
-                fontFamily: 'monospace',
-                maxWidth: '120px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                display: 'inline-block'
-              }}
-            >
-              {form.formId}
-            </span>
-          </div>
+        <td
+          className={lastCellClass}
+          style={{ padding: '0.42rem 0.5rem 0.42rem 2.1rem', verticalAlign: 'middle' }}
+        >
+          <span
+            title={form.formId}
+            style={{
+              fontSize: '0.73rem',
+              fontWeight: 400,
+              color: 'var(--text-muted)',
+              opacity: 0.85,
+              fontFamily: 'monospace',
+              maxWidth: '125px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              display: 'inline-block'
+            }}
+          >
+            {form.formId}
+          </span>
         </td>
-        <td style={{ padding: '0.52rem 0.75rem', verticalAlign: 'middle' }}>
-          <span style={{ fontWeight: 500, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
+        <td className={`dashboard-form-spine-cell ${isFirstInGroup ? 'is-first' : ''} ${isLastInGroup ? 'is-last' : ''}`}>
+          <span style={{ fontWeight: 400, fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
             {form.formTitle}
           </span>
         </td>
-        <td style={{ padding: '0.52rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-          {renderPreattentiveVersion(form.status, form.version, versionSelect)}
+        <td
+          className={lastCellClass}
+          style={{ padding: '0.42rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {renderPreattentiveVersion(form.status, form.version, versionSelect, false)}
         </td>
-        <td style={{ padding: '0.52rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+        <td
+          className={lastCellClass}
+          style={{ padding: '0.42rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.76rem', fontWeight: 400, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}
+        >
           {formattedDate}
         </td>
-        <td style={{ padding: '0.42rem 1rem 0.42rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <td
+          className={lastCellClass}
+          style={{ padding: '0.35rem 1rem 0.35rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
             <button
               type="button"
               title="Fill"
@@ -898,39 +909,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               Fill
             </button>
-            {hasPermission('design_document') && (
-              <span className="dashboard-row-reveal">
-                <button
-                  type="button"
-                  title="Edit"
-                  style={ghostActionBtnStyle}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                  onClick={() => onEditProcess(procId === 'unlinked' ? null : procId, 'form', form.formName)}
-                >
-                  <Edit2 size={13} />
-                </button>
+            {(hasPermission('design_document') || hasFormMenuItems) && (
+              <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
+                {hasPermission('design_document') && (
+                  <button
+                    type="button"
+                    title="Edit"
+                    style={ghostActionBtnStyle}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                    onClick={() => onEditProcess(procId === 'unlinked' ? null : procId, 'form', form.formName)}
+                  >
+                    <Edit2 size={13} />
+                  </button>
+                )}
+                {hasFormMenuItems && (
+                  <button
+                    type="button"
+                    title="More"
+                    className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                    onClick={(e) => openRowActionMenu(e, { key: menuKey, kind: 'form', form, processId: procId })}
+                    style={{
+                      ...ghostActionBtnStyle,
+                      background: isMenuOpen ? '#e2e8f0' : 'transparent',
+                      color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
+                      e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                    }}
+                  >
+                    <MoreHorizontal size={15} />
+                  </button>
+                )}
               </span>
-            )}
-            {hasFormMenuItems && (
-              <button
-                type="button"
-                title="More"
-                className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
-                onClick={(e) => openRowActionMenu(e, { key: menuKey, kind: 'form', form, processId: procId })}
-                style={{
-                  ...ghostActionBtnStyle,
-                  background: isMenuOpen ? '#e2e8f0' : 'transparent',
-                  color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
-                  e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                }}
-              >
-                <MoreHorizontal size={15} />
-              </button>
             )}
           </div>
         </td>
@@ -941,7 +954,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const renderProcessTreeTable = (
     treeItems: Array<{ family: (typeof processFamilies)[number]; formsToShow: any[]; isExpanded: boolean }>,
     standaloneItems: any[],
-    isRetired = false
+    isRetired = false,
+    headerSlot?: React.ReactNode
   ) => {
     const expandableKeys = !isRetired && !normalizedQuery
       ? [
@@ -965,11 +979,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           marginBottom: 0
         }}
       >
+        {headerSlot}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: isRetired ? '#f1f5f9' : '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                <th style={{ padding: '0.6rem 0.5rem 0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>
+                <th style={{ padding: '0.6rem 0.5rem 0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     {expandableKeys.length > 0 ? (
                       <button
@@ -1001,7 +1016,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span>ID</span>
                   </div>
                 </th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '51%' }}>Title</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '52%' }}>Title</th>
                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Version</th>
                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Updated</th>
                 <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }} aria-label="Actions" />
@@ -1019,6 +1034,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 const isLastFamily = idx === treeItems.length - 1 && standaloneItems.length === 0;
                 const procMenuKey = `proc_${currentRep.id}`;
                 const isMenuOpen = rowActionMenu?.key === procMenuKey;
+                const rowPadTop = showForms ? '0.8rem' : '0.75rem';
+                const rowPadBottom = showForms ? '0.45rem' : '0.75rem';
 
                 const versionSelect = allVersions.length > 1 ? (
                   <select
@@ -1061,7 +1078,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       }}
                       style={{
                         borderBottom: showForms
-                          ? '1px solid rgba(0, 0, 0, 0.05)'
+                          ? 'none'
                           : isLastFamily
                             ? 'none'
                             : '1px solid var(--neutral-border)',
@@ -1069,7 +1086,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         background: isRetired ? 'transparent' : undefined
                       }}
                     >
-                      <td style={{ padding: '0.68rem 0.5rem 0.68rem 0.75rem', verticalAlign: 'middle' }}>
+                      <td style={{ padding: `${rowPadTop} 0.5rem ${rowPadBottom} 0.75rem`, verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           {hasForms ? (
                             <span
@@ -1092,11 +1109,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <span
                             title={parentId}
                             style={{
-                              fontSize: '0.76rem',
+                              fontSize: '0.75rem',
                               fontWeight: 600,
                               color: 'var(--text-muted)',
                               fontFamily: 'monospace',
-                              maxWidth: '130px',
+                              maxWidth: '125px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -1107,8 +1124,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </span>
                         </div>
                       </td>
-                      <td style={{ padding: '0.68rem 0.75rem', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                      <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             className="dashboard-title-link"
@@ -1116,20 +1133,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               e.stopPropagation();
                               onSelectProcess(currentRep.id);
                             }}
-                            style={{ fontWeight: 600, fontSize: '0.88rem' }}
+                            style={{ fontWeight: 600, fontSize: '0.9rem', letterSpacing: '-0.01em' }}
                           >
                             {currentRep.title}
                           </button>
                           {hasForms && (
                             <span
                               style={{
-                                fontSize: '0.74rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '18px',
+                                padding: '0 0.42rem',
+                                borderRadius: '999px',
+                                background: '#f1f5f9',
                                 color: 'var(--text-muted)',
-                                fontWeight: 500,
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
                                 fontVariantNumeric: 'tabular-nums'
                               }}
                             >
-                              · {formsToShow.length}
+                              {formsToShow.length}
                             </span>
                           )}
                         </div>
@@ -1139,15 +1163,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '0.68rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
-                        {renderPreattentiveVersion(status, currentRep.version, versionSelect)}
+                      <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, textAlign: 'left', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                        {renderPreattentiveVersion(status, currentRep.version, versionSelect, true)}
                       </td>
-                      <td style={{ padding: '0.68rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, textAlign: 'left', verticalAlign: 'middle', fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 400, fontVariantNumeric: 'tabular-nums' }}>
                         {formatStandardDate(currentRep.lastUpdated)}
                       </td>
-                      <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                      <td style={{ padding: `${showForms ? '0.68rem' : '0.62rem'} 1rem ${showForms ? '0.32rem' : '0.62rem'} 0.75rem`, textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <span className="dashboard-row-reveal">
+                          <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
                             {hasPermission('design_document') && (
                               <button
                                 type="button"
@@ -1196,6 +1220,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       renderFormSubRow(
                         form,
                         currentRep.id,
+                        fIdx === 0,
                         fIdx === formsToShow.length - 1,
                         isLastFamily && fIdx === formsToShow.length - 1
                       )
@@ -1210,12 +1235,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     className="dashboard-tree-row"
                     onClick={() => toggleProcessGroup('unlinked')}
                     style={{
-                      borderBottom: isStandaloneExpanded ? '1px solid rgba(0, 0, 0, 0.05)' : 'none',
+                      borderTop: treeItems.length > 0 ? '1px solid var(--neutral-border)' : 'none',
+                      borderBottom: 'none',
                       cursor: 'pointer'
                     }}
                   >
-                    <td colSpan={5} style={{ padding: '0.68rem 1rem 0.68rem 0.75rem', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <td colSpan={5} style={{ padding: isStandaloneExpanded ? '0.8rem 1rem 0.45rem 0.75rem' : '0.75rem 1rem 0.75rem 0.75rem', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <span
                           aria-label={isStandaloneExpanded ? 'Collapse standalone forms' : 'Expand standalone forms'}
                           style={{
@@ -1230,11 +1256,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         >
                           {isStandaloneExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </span>
-                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                           Standalone forms
                         </span>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
-                          · {standaloneItems.length}
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '18px',
+                            padding: '0 0.42rem',
+                            borderRadius: '999px',
+                            background: '#f1f5f9',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums'
+                          }}
+                        >
+                          {standaloneItems.length}
                         </span>
                       </div>
                     </td>
@@ -1243,6 +1283,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     renderFormSubRow(
                       form,
                       'unlinked',
+                      fIdx === 0,
                       fIdx === standaloneItems.length - 1,
                       fIdx === standaloneItems.length - 1
                     )
@@ -1279,7 +1320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div style={{ flex: 1 }}>
       {/* View Switcher Tabs */}
       {!(isViewingSubmission && viewMode === 'submissions') && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', minHeight: '48px', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', minHeight: '36px', boxSizing: 'border-box' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
           <button
             type="button"
@@ -1348,15 +1389,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
       )}
 
-      {viewMode !== 'guide' && (
+      {(viewMode === 'submissions' || viewMode === 'trash') && (
         <DashboardToolbar
           searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
           onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
           placeholder={
-            viewMode === 'processes' ? "Search processes or forms..." :
-            viewMode === 'submissions' ? "Search submissions..." :
-            viewMode === 'trash' ? "Search trash by ID, title, or deleted by..." :
-            "Search reports..."
+            viewMode === 'submissions'
+              ? 'Search submissions...'
+              : 'Search trash by ID, title, or deleted by...'
           }
           filters={
             viewMode === 'submissions' ? (
@@ -1391,25 +1431,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             ) : undefined
           }
           actions={
-            hasPermission('design_document') && viewMode === 'processes' ? (
-              <button 
-                className="btn btn-primary" 
-                onClick={() => onEditProcess(null)}
-                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <Plus size={16} />
-                New Process
-              </button>
-            ) : hasPermission('design_document') && viewMode === 'reports' && onOpenReportBuilder ? (
-              <button 
-                className="btn btn-primary" 
-                onClick={() => onOpenReportBuilder()}
-                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <Plus size={16} />
-                New Report Template
-              </button>
-            ) : viewMode === 'trash' ? (
+            viewMode === 'trash' ? (
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -1483,21 +1505,52 @@ export const Dashboard: React.FC<DashboardProps> = ({
             );
           });
 
+          const reportsToolbar = (
+            <DashboardToolbar
+              embedded
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              placeholder="Search reports..."
+              actions={
+                hasPermission('design_document') && onOpenReportBuilder ? (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => onOpenReportBuilder()}
+                    style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={16} />
+                    New Report Template
+                  </button>
+                ) : undefined
+              }
+            />
+          );
+
           if (filteredReports.length === 0) {
             return (
-              <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-                <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
-                <h3>No Report Templates Found</h3>
-                <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                  {searchQuery
-                    ? 'No report templates match your search query. Try clearing the filter or checking your spelling.'
-                    : 'There are currently no report templates created. Click below to design your first report template.'}
-                </p>
-                {onOpenReportBuilder && (
-                  <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
-                    <Plus size={16} /> New Report Template
-                  </button>
-                )}
+              <div
+                className="paper-card accent-teal"
+                style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
+              >
+                {reportsToolbar}
+                <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                  <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
+                  <h3>No Report Templates Found</h3>
+                  <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    {searchQuery
+                      ? 'No report templates match your search query. Try clearing the filter or checking your spelling.'
+                      : 'There are currently no report templates created. Click below to design your first report template.'}
+                  </p>
+                  {searchQuery ? (
+                    <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
+                  ) : (
+                    onOpenReportBuilder && (
+                      <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
+                        <Plus size={16} /> New Report Template
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
             );
           }
@@ -1513,6 +1566,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 marginBottom: 0
               }}
             >
+              {reportsToolbar}
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
@@ -1610,71 +1664,110 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           );
         })()
-      ) : (visibleActiveTree.length === 0 && visibleStandaloneForms.length === 0 && retiredFamilies.length === 0) ? (
-        <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
-          <h3>No Processes Found</h3>
-          <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto' }}>
-            {searchQuery 
-              ? 'No results match your search query. Try clearing the filter or checking your spelling.'
-              : 'The repository is currently empty. Get started by creating your first process standard.'}
-          </p>
-          {searchQuery ? (
-            <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
-          ) : (
-            hasPermission('design_document') && (
-              <button className="btn btn-primary" onClick={() => onEditProcess(null)}>
-                <Plus size={18} />
-                New Process
-              </button>
-            )
-          )}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Active Processes & Linked Forms Tree */}
-          {(visibleActiveTree.length > 0 || visibleStandaloneForms.length > 0) ? (
-            renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false)
-          ) : (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--neutral-border)', borderRadius: '8px', background: '#fcfcfc' }}>
-              No active processes available.
-            </div>
-          )}
+      ) : (() => {
+        const processesToolbar = (
+          <DashboardToolbar
+            embedded
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            placeholder="Search processes or forms..."
+            actions={
+              hasPermission('design_document') ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => onEditProcess(null)}
+                  style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  <Plus size={16} />
+                  New Process
+                </button>
+              ) : undefined
+            }
+          />
+        );
 
-          {/* Retired Group */}
-          {retiredFamilies.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
-              <button
-                type="button"
-                onClick={() => setRetiredCollapsed(!retiredCollapsed)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  padding: 0,
-                  marginBottom: '1rem',
-                  outline: 'none'
-                }}
+        if (visibleActiveTree.length === 0 && visibleStandaloneForms.length === 0 && retiredFamilies.length === 0) {
+          return (
+            <div
+              className="paper-card accent-teal"
+              style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
+            >
+              {processesToolbar}
+              <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
+                <h3>No Processes Found</h3>
+                <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto' }}>
+                  {searchQuery
+                    ? 'No results match your search query. Try clearing the filter or checking your spelling.'
+                    : 'The repository is currently empty. Get started by creating your first process standard.'}
+                </p>
+                {searchQuery ? (
+                  <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
+                ) : (
+                  hasPermission('design_document') && (
+                    <button className="btn btn-primary" onClick={() => onEditProcess(null)}>
+                      <Plus size={18} />
+                      New Process
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Single Hero Sheet: Embedded Toolbar + Active Processes & Linked Forms Tree */}
+            {(visibleActiveTree.length > 0 || visibleStandaloneForms.length > 0) ? (
+              renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false, processesToolbar)
+            ) : (
+              <div
+                className="paper-card accent-teal"
+                style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
               >
-                {retiredCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
-                <span>Retired ({retiredFamilies.length})</span>
-              </button>
+                {processesToolbar}
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#fcfcfc' }}>
+                  No active processes available.
+                </div>
+              </div>
+            )}
 
-              {!retiredCollapsed && renderProcessTreeTable(
-                retiredFamilies.map(family => ({ family, formsToShow: [], isExpanded: false })),
-                [],
-                true
-              )}
-            </div>
-          )}
-        </div>
-      )}
+            {/* Retired Group */}
+            {retiredFamilies.length > 0 && (
+              <div style={{ marginTop: '0.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setRetiredCollapsed(!retiredCollapsed)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    padding: 0,
+                    marginBottom: '0.85rem',
+                    outline: 'none'
+                  }}
+                >
+                  {retiredCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                  <span>Retired ({retiredFamilies.length})</span>
+                </button>
+
+                {!retiredCollapsed && renderProcessTreeTable(
+                  retiredFamilies.map(family => ({ family, formsToShow: [], isExpanded: false })),
+                  [],
+                  true
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       </div>
 
       {rowActionMenu && ReactDOM.createPortal(

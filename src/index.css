@@ -624,12 +624,49 @@ table.print-table--horizontal td {
 }
 
 .dashboard-form-subrow {
-  background-color: #fafbfc;
+  background-color: var(--neutral-card);
   transition: background-color 0.14s ease;
 }
 
 .dashboard-form-subrow:hover {
   background-color: #f0fdfa;
+}
+
+.dashboard-form-spine-cell {
+  position: relative;
+  padding: 0.42rem 0.75rem 0.42rem 1.85rem;
+  vertical-align: middle;
+}
+
+.dashboard-form-spine-cell::before {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background-color: #e2e8f0;
+  transition: background-color 0.14s ease;
+}
+
+.dashboard-form-spine-cell.is-first::before {
+  top: 0.2rem;
+}
+
+.dashboard-form-spine-cell.is-last {
+  padding-bottom: 0.75rem;
+}
+
+.dashboard-form-spine-cell.is-last::before {
+  bottom: 0.55rem;
+}
+
+.dashboard-form-subrow:hover .dashboard-form-spine-cell::before {
+  background-color: var(--border-focus);
+}
+
+.dashboard-subrow-cell-last {
+  padding-bottom: 0.75rem !important;
 }
 
 .dashboard-title-link {
@@ -662,13 +699,14 @@ table.print-table--horizontal td {
 .dashboard-tree-row:hover .dashboard-row-reveal,
 .dashboard-tree-row:focus-within .dashboard-row-reveal,
 .dashboard-form-subrow:hover .dashboard-row-reveal,
-.dashboard-form-subrow:focus-within .dashboard-row-reveal {
+.dashboard-form-subrow:focus-within .dashboard-row-reveal,
+.dashboard-row-reveal.has-open-menu {
   opacity: 1;
   pointer-events: auto;
 }
 
 .dashboard-more-trigger {
-  opacity: 0.45;
+  opacity: 0.3;
   transition: opacity 0.14s ease, background-color 0.14s ease, color 0.14s ease;
 }
 
@@ -711,7 +749,7 @@ table.print-table--horizontal td {
   color: #ffffff !important;
 }
 
-@media (hover: none) {
+@media (hover: none) and (any-hover: none) {
   .dashboard-row-reveal,
   .dashboard-more-trigger {
     opacity: 0.85;

@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-11-27) — Unified tree-table classes (`.dashboard-tree-row`, `.dashboard-form-subrow`, `.dashboard-row-reveal`, `.dashboard-fill-btn`) verified against `src/index.css` & `Dashboard.tsx` |
+| **Verified At Commit** | (2026-11-27) — Single Hero Sheet, `.dashboard-form-spine-cell`, hollow draft ring, and CSS Level 4 `any-hover` fallback verified against `src/index.css` & `Dashboard.tsx` |
 
 ## 1. Design Principles
 
@@ -217,4 +217,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-10-26 | `CURRENT` | **Subtraction Design Mantra & ASCII Wireframing:** Added §1.1 codifying the 3 Crucial Audit Questions, 4 Minimalist Criteria, Zero UI Garbage Blacklist, and mandatory Before/After ASCII wireframe comparison with UI Element Audit Table in planning artifacts. |
 | 2026-11-26 | `CURRENT` | **Compact `.quote-card` & Operational Chrome Discipline:** Tightened `.quote-card` vertical rhythm (`padding: 1rem 1.5rem`, `margin-bottom: 1.25rem`, `1.02rem` quote text) in `src/index.css` and restricted rendering to the `Processes` home view while replacing bordered row buttons and pill tabs with unified `36px` Segmented Tabs and borderless ghost row actions. |
 | 2026-11-26 | `CURRENT` | **Editorial Quote Footer & Edge-to-Edge List Standard:** Replaced `.quote-card` top banner CSS with bottom-anchored `.quote-footer` in `src/index.css`, and standardized edge-to-edge `padding: 0` table cards, dot-pill status badges, and clickable table rows across all Dashboard views. |
-| 2026-11-27 | `CURRENT` | **Unified Tree Table Hover-to-Reveal & Preattentive Version-Status Pattern (`index.css`, `Dashboard`):** Replaced legacy `.dashboard-form-row`/`.dashboard-btn-cluster` classes with `.dashboard-tree-row`, `.dashboard-form-subrow`, `.dashboard-title-link`, `.dashboard-row-reveal`, `.dashboard-more-trigger`, and `.dashboard-fill-btn` (with `@media (hover: none)` touch fallback), pairing silent active versions + `6px` draft dots (`renderPreattentiveVersion`) with canonical single-verb actions (`Fill`, `Edit`, `Print`, `Duplicate`, `Delete`). |
+| 2026-11-27 | `CURRENT` | **Editorial Tree Table, Continuous Spine & Hybrid Touch Hover (`index.css`, `Dashboard`, `DashboardToolbar`):** Refined unified tree table into Single Hero Sheet (`DashboardToolbar embedded` on `Processes`/`Reports`), added `.dashboard-form-spine-cell` continuous vertical spine inside `Title` with zero sibling row borders (`.dashboard-subrow-cell-last`), replaced solid draft dots with `7px` hollow rings and muted `Updated` metadata, gated touch-only fallback behind `@media (hover: none) and (any-hover: none)` so hybrid laptops retain calm rest states, and kept only `Fill` visible on resting form sub-rows. |

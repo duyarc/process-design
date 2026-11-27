@@ -7,6 +7,7 @@ export interface DashboardToolbarProps {
   placeholder?: string;
   filters?: React.ReactNode;
   actions?: React.ReactNode;
+  embedded?: boolean;
 }
 
 export default function DashboardToolbar({
@@ -14,21 +15,24 @@ export default function DashboardToolbar({
   onSearchChange,
   placeholder = 'Search...',
   filters,
-  actions
+  actions,
+  embedded = false
 }: DashboardToolbarProps) {
   return (
-    <div 
-      className="paper-card" 
-      style={{ 
-        padding: '0.625rem 1rem', 
-        minHeight: '56px',
+    <div
+      className={embedded ? undefined : 'paper-card'}
+      style={{
+        padding: '0.75rem 1rem',
+        minHeight: '60px',
         boxSizing: 'border-box',
-        display: 'flex', 
-        gap: '0.75rem', 
-        flexWrap: 'wrap', 
-        alignItems: 'center', 
+        display: 'flex',
+        gap: '0.75rem',
+        flexWrap: 'wrap',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '1.25rem' 
+        background: embedded ? 'var(--neutral-card)' : undefined,
+        borderBottom: embedded ? '1px solid var(--neutral-border)' : undefined,
+        marginBottom: embedded ? 0 : '1rem'
       }}
     >
       <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '280px', flexWrap: 'wrap', alignItems: 'center' }}>
