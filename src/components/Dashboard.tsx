@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import type { Process, ReportTemplateISO, TrashEntityType } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Printer, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, SlidersHorizontal, Copy, Check, FilePlus, Trash2, RotateCcw, ArrowLeft, MoreHorizontal } from 'lucide-react';
+import { Plus, FileText, Printer, Edit2, ChevronDown, ChevronRight, SlidersHorizontal, Copy, Check, Trash2, RotateCcw, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import DashboardToolbar from './common/DashboardToolbar';
@@ -15,12 +15,11 @@ interface DashboardProps {
   onPrintProcess?: (id: string) => void;
   onEditProcess: (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string | null) => void;
   onViewFormSubmissions?: (formName: string) => void;
-  onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormFiller?: (processId: string, formName: string, preloadedFormTemplate?: any) => void;
   onOpenReportBuilder?: (formId?: string, reportId?: string) => void;
   onOpenFormReport?: (submissionId: string) => void;
-  viewMode?: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash';
-  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash') => void;
+  viewMode?: 'processes' | 'submissions' | 'reports' | 'guide' | 'trash';
+  onViewModeChange?: (mode: 'processes' | 'submissions' | 'reports' | 'guide' | 'trash') => void;
   initialFormFilter?: string | null;
   onClearFormFilter?: () => void;
   onViewingSubmissionChange?: (isViewing: boolean) => void;
@@ -76,6 +75,45 @@ const renderStatusBadge = (rawStatus?: string) => {
   );
 };
 
+const renderPreattentiveVersion = (
+  statusRaw?: string,
+  currentVersionStr?: string,
+  selectNode?: React.ReactNode
+) => {
+  const norm = (statusRaw || 'Active').trim().toUpperCase();
+  const isDraft = norm === 'DRAFT' || norm === 'PENDING REVIEW';
+  return (
+    <div
+      title={isDraft ? 'Draft' : undefined}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        fontSize: '0.78rem',
+        fontWeight: 500,
+        color: 'var(--text-secondary)',
+        fontVariantNumeric: 'tabular-nums'
+      }}
+    >
+      <span
+        aria-label={isDraft ? 'Draft' : undefined}
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: isDraft ? 'var(--warning)' : 'transparent',
+          flexShrink: 0
+        }}
+      />
+      {selectNode || <span>{formatCleanVersion(currentVersionStr)}</span>}
+    </div>
+  );
+};
+
+type RowActionMenuState =
+  | { key: string; kind: 'process'; proc: Process; top: number; right: number; openUpward: boolean }
+  | { key: string; kind: 'form'; form: any; processId: string; top: number; right: number; openUpward: boolean };
+
 export const Dashboard: React.FC<DashboardProps> = ({ 
   onSelectProcess, 
   onPrintProcess,
@@ -110,7 +148,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [formProcessFilter, setFormProcessFilter] = useState<string>('ALL');
   const [submissionSearchTerm, setSubmissionSearchTerm] = useState(initialFormFilter || '');
   const [submissionProcessFilter, setSubmissionProcessFilter] = useState<string>('ALL');
   const [submissionSignoffFilter, setSubmissionSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
@@ -131,7 +168,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedProcessVersions, setSelectedProcessVersions] = useState<Record<string, string>>({});
   const [retiredCollapsed, setRetiredCollapsed] = useState(true);
-  const [processSelectDialog, setProcessSelectDialog] = useState<{ form: any; action: 'fill' | 'audit' } | null>(null);
   const [isViewingSubmission, setIsViewingSubmission] = useState(false);
   const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -139,9 +175,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
     type: 'success' | 'error';
     undoItem?: { entityType: TrashEntityType; id: string; version?: string };
   } | null>(null);
-  const [collapsedProcessGroups, setCollapsedProcessGroups] = useState<Record<string, boolean>>({});
+  const [collapsedProcessGroups, setCollapsedProcessGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_collapsed_processes');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [trashCount, setTrashCount] = useState<number>(0);
-  const [lastActiveTab, setLastActiveTab] = useState<'processes' | 'forms' | 'submissions' | 'reports'>('processes');
+  const [lastActiveTab, setLastActiveTab] = useState<'processes' | 'submissions' | 'reports'>('processes');
   const [deleteTarget, setDeleteTarget] = useState<{
     entityType: 'process' | 'form' | 'report';
     id: string;
@@ -150,16 +193,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     note?: string;
   } | null>(null);
   const [deletingTarget, setDeletingTarget] = useState(false);
-  const [formActionMenu, setFormActionMenu] = useState<{
-    form: any;
-    top: number;
-    right: number;
-    openUpward: boolean;
-  } | null>(null);
+  const [rowActionMenu, setRowActionMenu] = useState<RowActionMenuState | null>(null);
 
   useEffect(() => {
-    if (!formActionMenu) return;
-    const dismiss = () => setFormActionMenu(null);
+    if (!rowActionMenu) return;
+    const dismiss = () => setRowActionMenu(null);
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') dismiss();
     };
@@ -173,18 +211,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
       window.removeEventListener('scroll', dismiss, true);
       window.removeEventListener('resize', dismiss);
     };
-  }, [formActionMenu]);
+  }, [rowActionMenu]);
 
-  const openFormActionMenu = (e: React.MouseEvent<HTMLButtonElement>, form: any) => {
+  const openRowActionMenu = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    payload:
+      | { key: string; kind: 'process'; proc: Process }
+      | { key: string; kind: 'form'; form: any; processId: string }
+  ) => {
     e.stopPropagation();
-    if (formActionMenu?.form?.formId === form.formId) {
-      setFormActionMenu(null);
+    if (rowActionMenu?.key === payload.key) {
+      setRowActionMenu(null);
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    const openUpward = window.innerHeight - rect.bottom < 160;
-    setFormActionMenu({
-      form,
+    const openUpward = window.innerHeight - rect.bottom < 180;
+    setRowActionMenu({
+      ...payload,
       top: openUpward ? rect.top - 4 : rect.bottom + 4,
       right: Math.max(8, window.innerWidth - rect.right),
       openUpward
@@ -208,10 +251,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const toggleProcessGroup = (processId: string) => {
-    setCollapsedProcessGroups(prev => ({
-      ...prev,
-      [processId]: !prev[processId]
-    }));
+    setCollapsedProcessGroups(prev => {
+      const next = { ...prev, [processId]: !prev[processId] };
+      try {
+        localStorage.setItem('dashboard_collapsed_processes', JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
+  };
+
+  const toggleAllProcessGroups = (keys: string[], collapse: boolean) => {
+    setCollapsedProcessGroups(prev => {
+      const next = { ...prev };
+      keys.forEach(k => {
+        next[k] = collapse;
+      });
+      try {
+        localStorage.setItem('dashboard_collapsed_processes', JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -226,7 +285,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const canAccessTrash = hasPermission('design_document') || currentUser?.role_id === 'admin';
 
   useEffect(() => {
-    if (viewMode === 'processes' || viewMode === 'forms' || viewMode === 'submissions' || viewMode === 'reports') {
+    if (viewMode === 'processes' || viewMode === 'submissions' || viewMode === 'reports') {
       setLastActiveTab(viewMode);
     }
   }, [viewMode]);
@@ -427,20 +486,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     })
     .sort((a, b) => getFamilyTimestamp(b) - getFamilyTimestamp(a));
 
-  const filteredFamilies = processFamilies.filter(family => {
-    const q = searchQuery.toLowerCase();
-    // Search across representative title/description
-    const repMatches = family.representative.title.toLowerCase().includes(q) ||
-                       family.representative.description.toLowerCase().includes(q);
-    
-    // Or if any specific steps or fields match
-    const stepMatches = family.representative.steps?.some(s => s.action.toLowerCase().includes(q));
-    const fieldMatches = family.representative.formFields?.some(f => f.checkItem.toLowerCase().includes(q));
-
-    return repMatches || stepMatches || fieldMatches;
-  });
-
-  // ─── Forms Tab: Group allForms by form_id (Memoized) ───
+  // ─── Forms Tab Data: Group allForms by form_id (Memoized) ───
   const formsGroupedById: Record<string, any[]> = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     allForms.forEach(f => {
@@ -455,7 +501,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // ─── Precompute active representative processes and their set of linked form IDs (Memoized) ───
   const activeProcsWithFormIds = useMemo(() => {
-    return Object.entries(groups).map(([, allVersions]) => {
+    return Object.entries(groups).map(([parentId, allVersions]) => {
+      if (parentId === 'unlinked') return null;
       const rep = getRepresentative(allVersions);
       if (rep.status === 'Retired') return null;
 
@@ -483,14 +530,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
 
       return {
+        parentId,
         id: rep.id,
         title: rep.title,
         linkedFormIds
       };
-    }).filter(Boolean) as Array<{ id: string; title: string; linkedFormIds: Set<string> }>;
+    }).filter(Boolean) as Array<{ parentId: string; id: string; title: string; linkedFormIds: Set<string> }>;
   }, [groups]);
 
-  // Helper to extract timestamp for form sorting (reused across formsList and processFormGroups)
+  // Helper to extract timestamp for form sorting
   const getFormTimestamp = (form: any) => {
     const dateVal = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || 0;
     return dateVal ? new Date(dateVal).getTime() : 0;
@@ -502,8 +550,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     Object.entries(formsGroupedById).forEach(([formId, versionsList]) => {
       const sorted = [...versionsList].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
       const chosenVersion = selectedFormVersions[formId];
-      const matched = chosenVersion 
-        ? sorted.find(f => f.version === chosenVersion) 
+      const matched = chosenVersion
+        ? sorted.find(f => f.version === chosenVersion)
         : sorted[0];
       latestFormsMap.set(formId, matched || sorted[0]);
     });
@@ -512,14 +560,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     latestFormsMap.forEach((formRecord, formId) => {
       const linkedProcesses = activeProcsWithFormIds
         .filter(p => p.linkedFormIds.has(formId))
-        .map(p => ({ id: p.id, title: p.title }));
+        .map(p => ({ parentId: p.parentId, id: p.id, title: p.title }));
 
       const formTitle = formRecord.form_title || formRecord.form_name || formId;
 
       list.push({
         formName: formId,
-        formTitle: formTitle,
-        formId: formId,
+        formTitle,
+        formId,
         version: formRecord.version || 'v1.0',
         status: formRecord.status || 'DRAFT',
         linkedProcesses,
@@ -536,109 +584,374 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return list;
   }, [formsGroupedById, selectedFormVersions, activeProcsWithFormIds]);
 
-  // ─── Filter formsList by search query & process filter (Memoized) ───
-  const filteredFormsList = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return formsList.filter(form => {
-      // 1. Process filter
-      if (formProcessFilter !== 'ALL') {
-        if (formProcessFilter === 'unlinked') {
-          if (form.linkedProcesses.length > 0) return false;
-        } else {
-          if (!form.linkedProcesses.some((lp: any) => lp.id === formProcessFilter)) return false;
-        }
-      }
-      // 2. Search query text
-      if (q) {
-        const match = form.formTitle.toLowerCase().includes(q) || 
-                      form.formId.toLowerCase().includes(q) || 
-                      form.linkedProcesses.some((lp: any) => lp.title.toLowerCase().includes(q));
-        if (!match) return false;
-      }
-      return true;
+  const formsByFamilyParentId = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    formsList.forEach(form => {
+      form.linkedProcesses.forEach((lp: { parentId: string }) => {
+        if (!map[lp.parentId]) map[lp.parentId] = [];
+        map[lp.parentId].push(form);
+      });
     });
-  }, [formsList, formProcessFilter, searchQuery]);
+    Object.values(map).forEach(arr => {
+      arr.sort((a, b) => getFormTimestamp(b) - getFormTimestamp(a));
+    });
+    return map;
+  }, [formsList]);
 
-  const processFormGroups = useMemo(() => {
-    const activeProcs = Object.entries(groups).map(([parentId, allVersions]) => {
-      const selectedId = selectedProcessVersions[parentId];
-      return selectedId ? allVersions.find(v => v.id === selectedId) || getRepresentative(allVersions) : getRepresentative(allVersions);
-    }).filter(p => (p.status || 'Active') !== 'Retired');
+  const standaloneForms = useMemo(() => {
+    return formsList.filter(form => form.linkedProcesses.length === 0);
+  }, [formsList]);
 
-    const groupsList: Array<{
-      processId: string;
-      processTitle: string;
-      status?: string;
-      latestFormTimestamp: number;
-      forms: Array<{ form: any }>;
-    }> = [];
+  const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    activeProcs.forEach(proc => {
-      if (formProcessFilter !== 'ALL' && formProcessFilter !== proc.id) {
+  const { visibleActiveTree, retiredFamilies, visibleStandaloneForms, isStandaloneExpanded } = useMemo(() => {
+    const activeTree: Array<{ family: (typeof processFamilies)[number]; formsToShow: any[]; isExpanded: boolean }> = [];
+    const retiredList: typeof processFamilies = [];
+
+    processFamilies.forEach(family => {
+      const selectedId = selectedProcessVersions[family.parentId];
+      const currentRep = selectedId ? family.allVersions.find(v => v.id === selectedId) || family.representative : family.representative;
+      const isRetired = (currentRep.status || 'Active') === 'Retired';
+
+      const processMatches =
+        !normalizedQuery ||
+        family.parentId.toLowerCase().includes(normalizedQuery) ||
+        currentRep.title.toLowerCase().includes(normalizedQuery) ||
+        (currentRep.description || '').toLowerCase().includes(normalizedQuery) ||
+        Boolean(currentRep.steps?.some(s => s.action.toLowerCase().includes(normalizedQuery))) ||
+        Boolean(currentRep.formFields?.some(f => f.checkItem.toLowerCase().includes(normalizedQuery)));
+
+      if (isRetired) {
+        if (!normalizedQuery || processMatches) {
+          retiredList.push(family);
+        }
         return;
       }
 
-      const matchedForms: Array<{ form: any }> = [];
+      const familyForms = formsByFamilyParentId[family.parentId] || [];
+      const matchingForms = normalizedQuery
+        ? familyForms.filter(
+            form =>
+              form.formId.toLowerCase().includes(normalizedQuery) ||
+              form.formTitle.toLowerCase().includes(normalizedQuery)
+          )
+        : familyForms;
 
-      filteredFormsList.forEach(form => {
-        const isLinked = form.linkedProcesses.some((lp: any) => lp.id === proc.id);
-        if (!isLinked) return;
-        matchedForms.push({ form });
+      if (!normalizedQuery || processMatches || matchingForms.length > 0) {
+        const formsToShow = normalizedQuery && matchingForms.length > 0 ? matchingForms : familyForms;
+        const isExpanded = normalizedQuery && matchingForms.length > 0
+          ? true
+          : !collapsedProcessGroups[family.parentId];
+        activeTree.push({ family, formsToShow, isExpanded });
+      }
+    });
+
+    const filteredStandalone = normalizedQuery
+      ? standaloneForms.filter(
+          form =>
+            form.formId.toLowerCase().includes(normalizedQuery) ||
+            form.formTitle.toLowerCase().includes(normalizedQuery)
+        )
+      : standaloneForms;
+
+    const standaloneExpanded = normalizedQuery
+      ? filteredStandalone.length > 0
+      : !collapsedProcessGroups['unlinked'];
+
+    return {
+      visibleActiveTree: activeTree,
+      retiredFamilies: retiredList,
+      visibleStandaloneForms: filteredStandalone,
+      isStandaloneExpanded: standaloneExpanded
+    };
+  }, [processFamilies, selectedProcessVersions, normalizedQuery, formsByFamilyParentId, collapsedProcessGroups, standaloneForms]);
+
+  const handleFillForProcess = (form: any, processId: string) => {
+    const hasLayout = form.rawRecord?.layout_blocks && (
+      Array.isArray(form.rawRecord.layout_blocks)
+        ? form.rawRecord.layout_blocks.length > 0
+        : form.rawRecord.layout_blocks !== '[]'
+    );
+    const tplToPass = hasLayout ? form.rawRecord : undefined;
+    if (onOpenFormFiller) {
+      onOpenFormFiller(processId || 'unlinked', form.formName, tplToPass);
+    } else if (processId && processId !== 'unlinked') {
+      onSelectProcess(processId);
+    }
+  };
+
+  const handleDuplicateFormDirect = async (form: any, preferredProcessId?: string) => {
+    if (duplicatingFormId) return;
+    try {
+      setDuplicatingFormId(form.formId);
+
+      // 1. Auto-generate next Form ID
+      const existingFormIds = allForms.map((f: any) => f.form_id || f.formId);
+      const newFormId = generateNextFormId(form.formId, existingFormIds);
+      const newFormTitle = form.formTitle || form.formName;
+
+      // 2. Fetch full layout if needed
+      let sourceTemplate = form.rawRecord;
+      if (!sourceTemplate?.layout_blocks || typeof sourceTemplate.layout_blocks === 'string') {
+        try {
+          const res = await fetch(`/api/forms/${encodeURIComponent(form.formId)}?version=${encodeURIComponent(form.version)}`);
+          if (res.ok) {
+            sourceTemplate = await res.json();
+          }
+        } catch (e) {
+          console.warn('Could not fetch single form, falling back to rawRecord', e);
+        }
+      }
+
+      // 3. Duplicate block payload and clean metadata
+      const authorName = currentUser?.full_name || currentUser?.username || 'Admin';
+      const duplicated = duplicateFormTemplate(sourceTemplate || {}, newFormId, newFormTitle, authorName);
+
+      // 4. Persist new form (never pass oldFormId)
+      const saveFormRes = await fetch('/api/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(duplicated)
       });
 
-      if (matchedForms.length > 0) {
-        // Sort forms within group descending by latest update timestamp
-        matchedForms.sort((a, b) => getFormTimestamp(b.form) - getFormTimestamp(a.form));
-        const latestTs = getFormTimestamp(matchedForms[0].form);
-
-        groupsList.push({
-          processId: proc.id,
-          processTitle: proc.title,
-          status: proc.status || 'Active',
-          latestFormTimestamp: latestTs,
-          forms: matchedForms
-        });
+      if (!saveFormRes.ok) {
+        let errText = 'Error saving duplicated form';
+        try {
+          const errData = await saveFormRes.json();
+          if (errData?.error) errText = errData.error;
+        } catch (_) {}
+        throw new Error(errText);
       }
-    });
 
-    if (formProcessFilter === 'ALL' || formProcessFilter === 'unlinked') {
-      const unlinkedForms = filteredFormsList.filter(form => form.linkedProcesses.length === 0);
-      if (unlinkedForms.length > 0) {
-        const sortedUnlinked = [...unlinkedForms].sort((a, b) => getFormTimestamp(b) - getFormTimestamp(a));
-        const latestTs = getFormTimestamp(sortedUnlinked[0]);
-        groupsList.push({
-          processId: 'unlinked',
-          processTitle: 'Standalone Forms',
-          status: undefined,
-          latestFormTimestamp: latestTs,
-          forms: sortedUnlinked.map(form => ({ form }))
+      // 5. Link into parent process & matching work step
+      const targetProc =
+        (preferredProcessId && preferredProcessId !== 'unlinked'
+          ? processes.find(p => p.id === preferredProcessId && p.status !== 'Retired')
+          : undefined) ||
+        processes.find(p => {
+          if (p.status === 'Retired') return false;
+          const steps = p.steps ? (typeof p.steps === 'string' ? JSON.parse(p.steps) : p.steps) : [];
+          const wfd = p.workflowFormsData ? (typeof p.workflowFormsData === 'string' ? JSON.parse(p.workflowFormsData) : p.workflowFormsData) : {};
+          const inSteps = steps.some((s: any) => (s.formNames && s.formNames.includes(form.formId)) || s.formName === form.formId);
+          const inWfd = wfd && Object.values(wfd).some((fdata: any) => fdata.formId === form.formId);
+          return inSteps || inWfd;
         });
+
+      if (targetProc) {
+        const currentSteps = targetProc.steps ? (typeof targetProc.steps === 'string' ? JSON.parse(targetProc.steps) : [...targetProc.steps]) : [];
+        const updatedSteps = linkDuplicatedFormToSteps(currentSteps, form.formId, newFormId);
+
+        const currentWfd = targetProc.workflowFormsData ? (typeof targetProc.workflowFormsData === 'string' ? JSON.parse(targetProc.workflowFormsData) : { ...targetProc.workflowFormsData }) : {};
+        currentWfd[newFormId] = {
+          formId: newFormId,
+          formTitle: newFormTitle,
+          version: 'v0.1',
+          status: 'DRAFT',
+          effectiveDate: '',
+          updatedAt: new Date().toISOString()
+        };
+
+        const updatedProc = {
+          ...targetProc,
+          steps: updatedSteps,
+          workflowFormsData: currentWfd,
+          lastUpdated: new Date().toISOString()
+        };
+
+        const saveProcRes = await fetch('/api/processes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedProc)
+        });
+
+        if (!saveProcRes.ok) {
+          let errText = 'Error updating parent process';
+          try {
+            const errData = await saveProcRes.json();
+            if (errData?.error) errText = errData.error;
+          } catch (_) {}
+          throw new Error(errText);
+        }
       }
+
+      // 6. Refresh data & toast
+      await fetchProcesses(true);
+      setToast({
+        message: `Duplicated form ${newFormId} successfully.`,
+        type: 'success'
+      });
+    } catch (err) {
+      console.error('Error duplicating form:', err);
+      setToast({
+        message: err instanceof Error ? err.message : 'Failed to duplicate form.',
+        type: 'error'
+      });
+    } finally {
+      setDuplicatingFormId(null);
     }
+  };
 
-    // Sort process groups descending so the group with the most recently modified form stays on top
-    groupsList.sort((a, b) => {
-      const diff = b.latestFormTimestamp - a.latestFormTimestamp;
-      if (diff !== 0) return diff;
-      return a.processTitle.localeCompare(b.processTitle);
-    });
+  const renderFormSubRow = (form: any, procId: string, isLastInGroup: boolean, isLastOverallRow: boolean) => {
+    const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
+    const formattedDate = formatStandardDate(rawDate);
+    const menuKey = `form_${procId}_${form.formId}`;
+    const isMenuOpen = rowActionMenu?.key === menuKey;
+    const hasFormMenuItems = Boolean(onViewFormSubmissions || hasPermission('design_document'));
 
-    return groupsList;
-  }, [groups, selectedProcessVersions, formProcessFilter, filteredFormsList]);
+    const versionSelect = formsGroupedById[form.formId] && formsGroupedById[form.formId].length > 1 ? (
+      <select
+        value={form.version}
+        onChange={(e) => {
+          const selectedVal = e.target.value;
+          setSelectedFormVersions(prev => ({
+            ...prev,
+            [form.formId]: selectedVal
+          }));
+        }}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          padding: 0,
+          margin: 0,
+          width: 'auto',
+          fontSize: '0.78rem',
+          fontWeight: 500,
+          color: 'var(--text-secondary)',
+          cursor: 'pointer',
+          outline: 'none'
+        }}
+      >
+        {[...formsGroupedById[form.formId]]
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .map((vOpt: any) => (
+            <option key={vOpt.id || vOpt.version} value={vOpt.version}>
+              {formatCleanVersion(vOpt.version)}
+            </option>
+          ))}
+      </select>
+    ) : undefined;
 
-  const activeFamilies = filteredFamilies.filter(f => {
-    const selectedId = selectedProcessVersions[f.parentId];
-    const currentRep = selectedId ? f.allVersions.find(v => v.id === selectedId) || f.representative : f.representative;
-    return (currentRep.status || 'Active') !== 'Retired';
-  });
+    return (
+      <tr
+        key={`${procId}_${form.formName}`}
+        className="dashboard-form-subrow"
+        onClick={() => handleFillForProcess(form, procId)}
+        style={{
+          borderBottom: isLastOverallRow
+            ? 'none'
+            : isLastInGroup
+              ? '1px solid var(--neutral-border)'
+              : '1px solid rgba(0, 0, 0, 0.04)',
+          cursor: 'pointer'
+        }}
+      >
+        <td style={{ padding: '0.52rem 0.5rem 0.52rem 1.75rem', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: '10px',
+                height: '10px',
+                borderLeft: '1.5px solid #cbd5e1',
+                borderBottom: '1.5px solid #cbd5e1',
+                borderBottomLeftRadius: '3px',
+                flexShrink: 0,
+                marginTop: '-3px'
+              }}
+            />
+            <span
+              title={form.formId}
+              style={{
+                fontSize: '0.76rem',
+                fontWeight: 500,
+                color: 'var(--text-muted)',
+                fontFamily: 'monospace',
+                maxWidth: '120px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'inline-block'
+              }}
+            >
+              {form.formId}
+            </span>
+          </div>
+        </td>
+        <td style={{ padding: '0.52rem 0.75rem', verticalAlign: 'middle' }}>
+          <span style={{ fontWeight: 500, fontSize: '0.84rem', color: 'var(--text-primary)' }}>
+            {form.formTitle}
+          </span>
+        </td>
+        <td style={{ padding: '0.52rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+          {renderPreattentiveVersion(form.status, form.version, versionSelect)}
+        </td>
+        <td style={{ padding: '0.52rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+          {formattedDate}
+        </td>
+        <td style={{ padding: '0.42rem 1rem 0.42rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button
+              type="button"
+              title="Fill"
+              className="dashboard-fill-btn"
+              onClick={() => handleFillForProcess(form, procId)}
+            >
+              Fill
+            </button>
+            {hasPermission('design_document') && (
+              <span className="dashboard-row-reveal">
+                <button
+                  type="button"
+                  title="Edit"
+                  style={ghostActionBtnStyle}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  onClick={() => onEditProcess(procId === 'unlinked' ? null : procId, 'form', form.formName)}
+                >
+                  <Edit2 size={13} />
+                </button>
+              </span>
+            )}
+            {hasFormMenuItems && (
+              <button
+                type="button"
+                title="More"
+                className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                onClick={(e) => openRowActionMenu(e, { key: menuKey, kind: 'form', form, processId: procId })}
+                style={{
+                  ...ghostActionBtnStyle,
+                  background: isMenuOpen ? '#e2e8f0' : 'transparent',
+                  color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
+                  e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                }}
+              >
+                <MoreHorizontal size={15} />
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
-  const retiredFamilies = filteredFamilies.filter(f => {
-    const selectedId = selectedProcessVersions[f.parentId];
-    const currentRep = selectedId ? f.allVersions.find(v => v.id === selectedId) || f.representative : f.representative;
-    return (currentRep.status || 'Active') === 'Retired';
-  });
+  const renderProcessTreeTable = (
+    treeItems: Array<{ family: (typeof processFamilies)[number]; formsToShow: any[]; isExpanded: boolean }>,
+    standaloneItems: any[],
+    isRetired = false
+  ) => {
+    const expandableKeys = !isRetired && !normalizedQuery
+      ? [
+          ...treeItems.filter(item => item.formsToShow.length > 0).map(item => item.family.parentId),
+          ...(standaloneItems.length > 0 ? ['unlinked'] : [])
+        ]
+      : [];
+    const allExpandableCollapsed =
+      expandableKeys.length > 0 && expandableKeys.every(k => Boolean(collapsedProcessGroups[k]));
 
-  const renderProcessListTable = (familiesList: typeof filteredFamilies, isRetired = false) => {
     return (
       <div
         className={`paper-card ${isRetired ? '' : 'accent-teal'}`}
@@ -656,143 +969,286 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: isRetired ? '#f1f5f9' : '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Process ID</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '40%' }}>Process Title</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Version</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
-                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Last Updated</th>
-                <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
+                <th style={{ padding: '0.6rem 0.5rem 0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    {expandableKeys.length > 0 ? (
+                      <button
+                        type="button"
+                        title={allExpandableCollapsed ? 'Expand all' : 'Collapse all'}
+                        onClick={() => toggleAllProcessGroups(expandableKeys, !allExpandableCollapsed)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '18px',
+                          height: '18px',
+                          padding: 0,
+                          margin: 0,
+                          border: 'none',
+                          borderRadius: '4px',
+                          background: 'transparent',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                      >
+                        {allExpandableCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                      </button>
+                    ) : (
+                      <span style={{ width: '18px', display: 'inline-block', flexShrink: 0 }} />
+                    )}
+                    <span>ID</span>
+                  </div>
+                </th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '51%' }}>Title</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Version</th>
+                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '11%' }}>Updated</th>
+                <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '12%' }} aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
-              {familiesList.map((family, idx) => {
+              {treeItems.map(({ family, formsToShow, isExpanded }, idx) => {
                 const { parentId, representative, allVersions } = family;
                 const selectedId = selectedProcessVersions[parentId];
                 const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
                 const status = currentRep.status || 'Active';
                 const hasDesc = Boolean(currentRep.description && currentRep.description.trim());
+                const hasForms = !isRetired && formsToShow.length > 0;
+                const showForms = hasForms && isExpanded;
+                const isLastFamily = idx === treeItems.length - 1 && standaloneItems.length === 0;
+                const procMenuKey = `proc_${currentRep.id}`;
+                const isMenuOpen = rowActionMenu?.key === procMenuKey;
+
+                const versionSelect = allVersions.length > 1 ? (
+                  <select
+                    value={currentRep.id}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
+                    }}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      padding: 0,
+                      margin: 0,
+                      width: 'auto',
+                      fontSize: '0.78rem',
+                      fontWeight: 500,
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    {allVersions.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {getFormattedVersionString(v)}
+                      </option>
+                    ))}
+                  </select>
+                ) : undefined;
 
                 return (
-                  <tr
-                    key={parentId}
-                    onClick={() => onSelectProcess(currentRep.id)}
-                    style={{
-                      borderBottom: idx === familiesList.length - 1 ? 'none' : '1px solid var(--neutral-border)',
-                      transition: 'background 0.15s',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                        {parentId}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{currentRep.title}</div>
-                      {hasDesc && (
-                        <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: '0.15rem', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {currentRep.description}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0.15rem 0.4rem',
-                        fontSize: '0.72rem',
-                        borderRadius: '4px',
-                        border: '1px solid var(--neutral-border)',
-                        background: '#ffffff',
-                        color: 'var(--text-primary)',
-                        fontWeight: 600,
-                        height: '22px'
-                      }}>
-                        <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                        {allVersions.length > 1 ? (
-                          <select
-                            value={currentRep.id}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
-                            }}
+                  <React.Fragment key={parentId}>
+                    <tr
+                      className="dashboard-tree-row"
+                      onClick={() => {
+                        if (hasForms) {
+                          toggleProcessGroup(parentId);
+                        } else {
+                          onSelectProcess(currentRep.id);
+                        }
+                      }}
+                      style={{
+                        borderBottom: showForms
+                          ? '1px solid rgba(0, 0, 0, 0.05)'
+                          : isLastFamily
+                            ? 'none'
+                            : '1px solid var(--neutral-border)',
+                        cursor: 'pointer',
+                        background: isRetired ? 'transparent' : undefined
+                      }}
+                    >
+                      <td style={{ padding: '0.68rem 0.5rem 0.68rem 0.75rem', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          {hasForms ? (
+                            <span
+                              aria-label={isExpanded ? 'Collapse forms' : 'Expand forms'}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '18px',
+                                height: '18px',
+                                color: 'var(--text-muted)',
+                                flexShrink: 0
+                              }}
+                            >
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </span>
+                          ) : (
+                            <span style={{ width: '18px', display: 'inline-block', flexShrink: 0 }} />
+                          )}
+                          <span
+                            title={parentId}
                             style={{
-                              border: 'none',
-                              background: 'transparent',
-                              padding: 0,
-                              margin: 0,
-                              width: 'auto',
-                              fontSize: '0.72rem',
+                              fontSize: '0.76rem',
                               fontWeight: 600,
-                              color: 'var(--text-primary)',
-                              cursor: 'pointer',
-                              outline: 'none'
+                              color: 'var(--text-muted)',
+                              fontFamily: 'monospace',
+                              maxWidth: '130px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'inline-block'
                             }}
                           >
-                            {allVersions.map(v => (
-                              <option key={v.id} value={v.id}>
-                                {getFormattedVersionString(v)}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span style={{ color: 'var(--text-primary)' }}>{getFormattedVersionString(currentRep)}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
-                      {renderStatusBadge(status)}
-                    </td>
-                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
-                      {formatStandardDate(currentRep.lastUpdated)}
-                    </td>
-                    <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          title="View Process"
-                          style={ghostActionBtnStyle}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--primary)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                          onClick={() => onSelectProcess(currentRep.id)}
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Print Process"
-                          style={ghostActionBtnStyle}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                          onClick={() => onPrintProcess ? onPrintProcess(currentRep.id) : onSelectProcess(currentRep.id)}
-                        >
-                          <Printer size={14} />
-                        </button>
-                        {hasPermission('design_document') && (
+                            {parentId}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.68rem 0.75rem', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
                           <button
                             type="button"
-                            title="Move to Trash"
-                            style={ghostActionBtnStyle}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                            onClick={() => setDeleteTarget({
-                              entityType: 'process',
-                              id: currentRep.id,
-                              title: currentRep.title,
-                              version: currentRep.version,
-                              note: 'This process and its links will be hidden safely and can be restored anytime.'
-                            })}
+                            className="dashboard-title-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectProcess(currentRep.id);
+                            }}
+                            style={{ fontWeight: 600, fontSize: '0.88rem' }}
                           >
-                            <Trash2 size={14} />
+                            {currentRep.title}
                           </button>
+                          {hasForms && (
+                            <span
+                              style={{
+                                fontSize: '0.74rem',
+                                color: 'var(--text-muted)',
+                                fontWeight: 500,
+                                fontVariantNumeric: 'tabular-nums'
+                              }}
+                            >
+                              · {formsToShow.length}
+                            </span>
+                          )}
+                        </div>
+                        {hasDesc && (
+                          <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: '0.15rem', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {currentRep.description}
+                          </div>
                         )}
+                      </td>
+                      <td style={{ padding: '0.68rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                        {renderPreattentiveVersion(status, currentRep.version, versionSelect)}
+                      </td>
+                      <td style={{ padding: '0.68rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                        {formatStandardDate(currentRep.lastUpdated)}
+                      </td>
+                      <td style={{ padding: '0.55rem 1rem 0.55rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <span className="dashboard-row-reveal">
+                            {hasPermission('design_document') && (
+                              <button
+                                type="button"
+                                title="Edit"
+                                style={ghostActionBtnStyle}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                onClick={() => onEditProcess(currentRep.id)}
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              title="Print"
+                              style={ghostActionBtnStyle}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                              onClick={() => onPrintProcess ? onPrintProcess(currentRep.id) : onSelectProcess(currentRep.id)}
+                            >
+                              <Printer size={14} />
+                            </button>
+                          </span>
+                          <button
+                            type="button"
+                            title="More"
+                            className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                            onClick={(e) => openRowActionMenu(e, { key: procMenuKey, kind: 'process', proc: currentRep })}
+                            style={{
+                              ...ghostActionBtnStyle,
+                              background: isMenuOpen ? '#f1f5f9' : 'transparent',
+                              color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = isMenuOpen ? '#f1f5f9' : 'transparent';
+                              e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                            }}
+                          >
+                            <MoreHorizontal size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {showForms && formsToShow.map((form, fIdx) =>
+                      renderFormSubRow(
+                        form,
+                        currentRep.id,
+                        fIdx === formsToShow.length - 1,
+                        isLastFamily && fIdx === formsToShow.length - 1
+                      )
+                    )}
+                  </React.Fragment>
+                );
+              })}
+
+              {!isRetired && standaloneItems.length > 0 && (
+                <>
+                  <tr
+                    className="dashboard-tree-row"
+                    onClick={() => toggleProcessGroup('unlinked')}
+                    style={{
+                      borderBottom: isStandaloneExpanded ? '1px solid rgba(0, 0, 0, 0.05)' : 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <td colSpan={5} style={{ padding: '0.68rem 1rem 0.68rem 0.75rem', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span
+                          aria-label={isStandaloneExpanded ? 'Collapse standalone forms' : 'Expand standalone forms'}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '18px',
+                            height: '18px',
+                            color: 'var(--text-muted)',
+                            flexShrink: 0
+                          }}
+                        >
+                          {isStandaloneExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                          Standalone forms
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                          · {standaloneItems.length}
+                        </span>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                  {isStandaloneExpanded && standaloneItems.map((form, fIdx) =>
+                    renderFormSubRow(
+                      form,
+                      'unlinked',
+                      fIdx === standaloneItems.length - 1,
+                      fIdx === standaloneItems.length - 1
+                    )
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         </div>
@@ -827,28 +1283,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
           <button
             type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
+            onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
             style={segmentedTabBtnStyle(viewMode === 'processes')}
           >
             Processes
           </button>
           <button
             type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
-            style={segmentedTabBtnStyle(viewMode === 'forms')}
-          >
-            Forms
-          </button>
-          <button
-            type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
+            onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); }}
             style={segmentedTabBtnStyle(viewMode === 'submissions')}
           >
             Submissions
           </button>
           <button
             type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
+            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); }}
             style={segmentedTabBtnStyle(viewMode === 'reports')}
           >
             Reports
@@ -904,29 +1353,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
           onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
           placeholder={
-            viewMode === 'processes' ? "Search processes..." :
-            viewMode === 'forms' ? "Search forms..." :
+            viewMode === 'processes' ? "Search processes or forms..." :
             viewMode === 'submissions' ? "Search submissions..." :
             viewMode === 'trash' ? "Search trash by ID, title, or deleted by..." :
             "Search reports..."
           }
           filters={
-            viewMode === 'forms' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
-                <select
-                  value={formProcessFilter}
-                  onChange={(e) => setFormProcessFilter(e.target.value)}
-                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
-                >
-                  <option value="ALL">All Processes</option>
-                  {processes.filter(p => p.id !== 'unlinked').map(p => (
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                  <option value="unlinked">Standalone Forms</option>
-                </select>
-              </div>
-            ) : viewMode === 'submissions' ? (
+            viewMode === 'submissions' ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
@@ -1089,7 +1522,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '22%' }}>Source Form</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '10%' }}>Version</th>
                       <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
-                      <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }}>Actions</th>
+                      <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '8%' }} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -1128,22 +1561,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               </span>
                             </div>
                           </td>
-                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
-                            <div style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              padding: '0.15rem 0.4rem',
-                              fontSize: '0.72rem',
-                              borderRadius: '4px',
-                              border: '1px solid var(--neutral-border)',
-                              background: '#ffffff',
-                              color: 'var(--text-primary)',
-                              fontWeight: 600,
-                              height: '22px'
-                            }}>
-                              <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                              <span>{formatCleanVersion(rep.version)}</span>
-                            </div>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                            {formatCleanVersion(rep.version)}
                           </td>
                           <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
                             {renderStatusBadge(status)}
@@ -1154,7 +1573,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <button
                                   type="button"
                                   style={ghostActionBtnStyle}
-                                  title="Edit Report Template"
+                                  title="Edit"
                                   onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
@@ -1166,7 +1585,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <button
                                   type="button"
                                   style={ghostActionBtnStyle}
-                                  title="Move to Trash"
+                                  title="Delete"
                                   onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = 'var(--danger, #dc2626)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                                   onClick={() => setDeleteTarget({
@@ -1191,650 +1610,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           );
         })()
-      ) : viewMode === 'forms' ? (
-        (() => {
-        const handleFillAction = (form: any) => {
-          const hasLayout = form.rawRecord?.layout_blocks && (
-            Array.isArray(form.rawRecord.layout_blocks)
-              ? form.rawRecord.layout_blocks.length > 0
-              : form.rawRecord.layout_blocks !== '[]'
-          );
-          const tplToPass = hasLayout ? form.rawRecord : undefined;
-          if (form.linkedProcesses.length > 1) {
-            setProcessSelectDialog({ form, action: 'fill' });
-          } else if (form.linkedProcesses.length === 1) {
-            if (onOpenFormFiller) {
-              onOpenFormFiller(form.linkedProcesses[0].id, form.formName, tplToPass);
-            } else {
-              onSelectProcess(form.linkedProcesses[0].id);
-            }
-          } else {
-            if (onOpenFormFiller) {
-              onOpenFormFiller('unlinked', form.formName, tplToPass);
-            } else {
-              onSelectProcess('unlinked');
-            }
-          }
-        };
-
-        const handleDuplicateFormDirect = async (form: any) => {
-          if (duplicatingFormId) return;
-          try {
-            setDuplicatingFormId(form.formId);
-
-            // 1. Tự động đánh lại Form ID kế tiếp
-            const existingFormIds = allForms.map((f: any) => f.form_id || f.formId);
-            const newFormId = generateNextFormId(form.formId, existingFormIds);
-            const newFormTitle = form.formTitle || form.formName;
-
-            // 2. Fetch đầy đủ layout nếu cần
-            let sourceTemplate = form.rawRecord;
-            if (!sourceTemplate?.layout_blocks || typeof sourceTemplate.layout_blocks === 'string') {
-              try {
-                const res = await fetch(`/api/forms/${encodeURIComponent(form.formId)}?version=${encodeURIComponent(form.version)}`);
-                if (res.ok) {
-                  sourceTemplate = await res.json();
-                }
-              } catch (e) {
-                console.warn('Could not fetch single form, falling back to rawRecord', e);
-              }
-            }
-
-            // 3. Nhân bản dữ liệu blocks và làm sạch metadata
-            const authorName = currentUser?.full_name || currentUser?.username || 'Admin';
-            const duplicated = duplicateFormTemplate(sourceTemplate || {}, newFormId, newFormTitle, authorName);
-
-            // 4. Lưu biểu mẫu mới (TUYỆT ĐỐI không truyền oldFormId)
-            const saveFormRes = await fetch('/api/forms', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(duplicated)
-            });
-
-            if (!saveFormRes.ok) {
-              let errText = 'Error saving duplicated form';
-              try {
-                const errData = await saveFormRes.json();
-                if (errData?.error) errText = errData.error;
-              } catch (_) {}
-              throw new Error(errText);
-            }
-
-            // 5. Tự động liên kết vào CÙNG QUY TRÌNH và CÙNG WORK STEP
-            const targetProc = processes.find(p => {
-              if (p.status === 'Retired') return false;
-              const steps = p.steps ? (typeof p.steps === 'string' ? JSON.parse(p.steps) : p.steps) : [];
-              const wfd = p.workflowFormsData ? (typeof p.workflowFormsData === 'string' ? JSON.parse(p.workflowFormsData) : p.workflowFormsData) : {};
-              const inSteps = steps.some((s: any) => (s.formNames && s.formNames.includes(form.formId)) || s.formName === form.formId);
-              const inWfd = wfd && Object.values(wfd).some((fdata: any) => fdata.formId === form.formId);
-              return inSteps || inWfd;
-            });
-
-            if (targetProc) {
-              const currentSteps = targetProc.steps ? (typeof targetProc.steps === 'string' ? JSON.parse(targetProc.steps) : [...targetProc.steps]) : [];
-              const updatedSteps = linkDuplicatedFormToSteps(currentSteps, form.formId, newFormId);
-
-              const currentWfd = targetProc.workflowFormsData ? (typeof targetProc.workflowFormsData === 'string' ? JSON.parse(targetProc.workflowFormsData) : { ...targetProc.workflowFormsData }) : {};
-              currentWfd[newFormId] = {
-                formId: newFormId,
-                formTitle: newFormTitle,
-                version: 'v0.1',
-                status: 'DRAFT',
-                effectiveDate: '',
-                updatedAt: new Date().toISOString()
-              };
-
-              const updatedProc = {
-                ...targetProc,
-                steps: updatedSteps,
-                workflowFormsData: currentWfd,
-                lastUpdated: new Date().toISOString()
-              };
-
-              const saveProcRes = await fetch('/api/processes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedProc)
-              });
-
-              if (!saveProcRes.ok) {
-                let errText = 'Error updating parent process';
-                try {
-                  const errData = await saveProcRes.json();
-                  if (errData?.error) errText = errData.error;
-                } catch (_) {}
-                throw new Error(errText);
-              }
-            }
-
-            // 6. Refresh dữ liệu và thông báo
-            await fetchProcesses(true);
-            setToast({
-              message: `Duplicated form ${newFormId} successfully.`,
-              type: 'success'
-            });
-          } catch (err) {
-            console.error('Error duplicating form:', err);
-            setToast({
-              message: err instanceof Error ? err.message : 'Failed to duplicate form.',
-              type: 'error'
-            });
-          } finally {
-            setDuplicatingFormId(null);
-          }
-        };
-
-        if (filteredFormsList.length === 0) {
-          return (
-            <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-              <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
-              <h3>No Form Templates Found</h3>
-              <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto' }}>
-                {searchQuery 
-                  ? 'No results match your search query. Try clearing the filter or checking your spelling.'
-                  : 'There are currently no form templates created. Create a process and add forms to get started.'}
-              </p>
-              {searchQuery && (
-                <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {processFormGroups.map((group) => {
-                const isCollapsed = Boolean(collapsedProcessGroups[group.processId]);
-                return (
-                  <div 
-                    key={group.processId}
-                    className="paper-card accent-teal"
-                    style={{
-                      padding: 0,
-                      overflow: 'visible',
-                      borderRadius: '8px',
-                      border: '1px solid var(--neutral-border)',
-                      position: 'relative',
-                      zIndex: 1,
-                      marginBottom: 0
-                    }}
-                  >
-                    {/* Group Accordion Header */}
-                    <div 
-                      onClick={() => toggleProcessGroup(group.processId)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        background: '#f8fafc',
-                        borderBottom: isCollapsed ? 'none' : '1px solid var(--neutral-border)',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        borderTopLeftRadius: '8px',
-                        borderTopRightRadius: '8px',
-                        borderBottomLeftRadius: isCollapsed ? '8px' : '0',
-                        borderBottomRightRadius: isCollapsed ? '8px' : '0',
-                        transition: 'background 0.15s ease'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                        <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                          {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                        </div>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          {group.processId === 'unlinked' ? (
-                            <FileText size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                          ) : (
-                            <GitBranch size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                          )}
-                          <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-                            {group.processTitle}
-                          </span>
-                          {group.processId !== 'unlinked' && (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>
-                              {group.processId}
-                            </span>
-                          )}
-                        </div>
-
-                        <span style={{ color: '#cbd5e1' }}>•</span>
-
-                        <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                          {group.forms.length} {group.forms.length === 1 ? 'form' : 'forms'}
-                        </span>
-
-                        {group.status && (
-                          <>
-                            <span style={{ color: '#cbd5e1' }}>•</span>
-                            {renderStatusBadge(group.status)}
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
-                        {group.processId !== 'unlinked' && (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => onSelectProcess(group.processId)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              fontSize: '0.78rem',
-                              padding: '0.3rem 0.65rem',
-                              background: '#ffffff',
-                              fontWeight: 600,
-                              borderColor: 'rgba(16, 163, 163, 0.3)',
-                              color: 'var(--primary)',
-                              margin: 0
-                            }}
-                            title="View process flowchart & details"
-                          >
-                            <Eye size={13} />
-                            <span>View Process</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Group Forms Table */}
-                    {!isCollapsed && (
-                      <div style={{ overflow: 'visible' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                              <th style={{ padding: '0.6rem 0.75rem 0.6rem 1rem', textAlign: 'left', fontWeight: 600, width: '16%' }}>Form ID</th>
-                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '38%' }}>Form Title</th>
-                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Version</th>
-                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Status</th>
-                              <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Last Updated</th>
-                              <th style={{ padding: '0.6rem 1rem 0.6rem 0.75rem', textAlign: 'right', fontWeight: 600, width: '10%' }}>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.forms.map(({ form }, fIdx) => {
-                              const status = form.status || 'DRAFT';
-                              const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
-                              const formattedDate = formatStandardDate(rawDate);
-
-                              return (
-                                <tr 
-                                  key={`${group.processId}_${form.formName}`} 
-                                  className="dashboard-form-row"
-                                  onClick={() => handleFillAction(form)}
-                                  style={{
-                                    borderBottom: fIdx === group.forms.length - 1 ? 'none' : '1px solid var(--neutral-border)',
-                                    transition: 'background 0.15s',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <td style={{ padding: '0.65rem 0.75rem 0.65rem 1rem', verticalAlign: 'middle' }}>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                                      {form.formId}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                    {form.formTitle}
-                                  </td>
-                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-                                    {formsGroupedById[form.formId] && (
-                                      <div style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        padding: '0.15rem 0.4rem',
-                                        fontSize: '0.72rem',
-                                        borderRadius: '4px',
-                                        border: '1px solid var(--neutral-border)',
-                                        background: '#ffffff',
-                                        color: 'var(--text-primary)',
-                                        fontWeight: 600,
-                                        height: '22px'
-                                      }}>
-                                        <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                                        {formsGroupedById[form.formId].length > 1 ? (
-                                          <select
-                                            value={form.version}
-                                            onChange={(e) => {
-                                              const selectedVal = e.target.value;
-                                              setSelectedFormVersions(prev => ({
-                                                ...prev,
-                                                [form.formId]: selectedVal
-                                              }));
-                                            }}
-                                            style={{
-                                              border: 'none',
-                                              background: 'transparent',
-                                              padding: 0,
-                                              margin: 0,
-                                              width: 'auto',
-                                              fontSize: '0.72rem',
-                                              fontWeight: 600,
-                                              color: 'var(--text-primary)',
-                                              cursor: 'pointer',
-                                              outline: 'none'
-                                            }}
-                                          >
-                                            {formsGroupedById[form.formId]
-                                              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                                              .map((vOpt: any) => (
-                                                <option key={vOpt.id || vOpt.version} value={vOpt.version}>
-                                                  {formatCleanVersion(vOpt.version)}
-                                                </option>
-                                              ))
-                                            }
-                                          </select>
-                                        ) : (
-                                          <span style={{ color: 'var(--text-primary)' }}>{formatCleanVersion(formsGroupedById[form.formId][0].version)}</span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle' }}>
-                                    {renderStatusBadge(status)}
-                                  </td>
-                                  <td style={{ padding: '0.6rem 0.75rem', textAlign: 'left', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
-                                    {formattedDate}
-                                  </td>
-                                  <td style={{ padding: '0.5rem 1rem 0.5rem 0.75rem', textAlign: 'right', verticalAlign: 'middle', width: '130px' }} onClick={e => e.stopPropagation()}>
-                                    <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                      <button
-                                        type="button"
-                                        title="Fill form"
-                                        onClick={() => handleFillAction(form)}
-                                        style={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '0.25rem',
-                                          height: '28px',
-                                          padding: '0 0.5rem',
-                                          border: 'none',
-                                          borderRadius: '6px',
-                                          background: 'transparent',
-                                          color: 'var(--primary)',
-                                          fontSize: '0.76rem',
-                                          fontWeight: 600,
-                                          cursor: 'pointer',
-                                          whiteSpace: 'nowrap',
-                                          transition: 'background 0.15s ease'
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = '#f0fdfa'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                                      >
-                                        <FilePlus size={13} />
-                                        <span>Fill</span>
-                                      </button>
-
-                                      {hasPermission('design_document') && (
-                                        <button
-                                          type="button"
-                                          title="Edit form template"
-                                          onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                                          style={ghostActionBtnStyle}
-                                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                        >
-                                          <Edit2 size={13} />
-                                        </button>
-                                      )}
-
-                                      {hasPermission('design_document') && (
-                                        <button
-                                          type="button"
-                                          title="More actions"
-                                          onClick={(e) => openFormActionMenu(e, form)}
-                                          style={{
-                                            ...ghostActionBtnStyle,
-                                            background: formActionMenu?.form?.formId === form.formId ? '#f1f5f9' : 'transparent',
-                                            color: formActionMenu?.form?.formId === form.formId ? 'var(--text-primary)' : 'var(--text-secondary)'
-                                          }}
-                                          onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                          onMouseLeave={e => {
-                                            const isOpen = formActionMenu?.form?.formId === form.formId;
-                                            e.currentTarget.style.background = isOpen ? '#f1f5f9' : 'transparent';
-                                            e.currentTarget.style.color = isOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                                          }}
-                                        >
-                                          <MoreHorizontal size={15} />
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {formActionMenu && ReactDOM.createPortal(
-              <div
-                onClick={e => e.stopPropagation()}
-                style={{
-                  position: 'fixed',
-                  top: formActionMenu.openUpward ? undefined : `${formActionMenu.top}px`,
-                  bottom: formActionMenu.openUpward ? `${window.innerHeight - formActionMenu.top}px` : undefined,
-                  right: `${formActionMenu.right}px`,
-                  zIndex: 9998,
-                  minWidth: '152px',
-                  background: '#ffffff',
-                  border: '1px solid var(--neutral-border)',
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05)',
-                  padding: '4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px'
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={duplicatingFormId === formActionMenu.form.formId}
-                  onClick={() => {
-                    const target = formActionMenu.form;
-                    setFormActionMenu(null);
-                    handleDuplicateFormDirect(target);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    width: '100%',
-                    padding: '0.45rem 0.65rem',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    textAlign: 'left',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
-                  <span>{duplicatingFormId === formActionMenu.form.formId ? 'Duplicating...' : 'Duplicate'}</span>
-                </button>
-
-                {onOpenReportBuilder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const target = formActionMenu.form;
-                      setFormActionMenu(null);
-                      const linkedRep = reportTemplates.find(r => r.linkedFormId === target.formId);
-                      onOpenReportBuilder(target.formId, linkedRep?.reportId);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      width: '100%',
-                      padding: '0.45rem 0.65rem',
-                      border: 'none',
-                      borderRadius: '6px',
-                      background: 'transparent',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.8rem',
-                      fontWeight: 500,
-                      textAlign: 'left',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <SlidersHorizontal size={13} style={{ color: 'var(--text-secondary)' }} />
-                    <span>Report Template</span>
-                  </button>
-                )}
-
-                <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = formActionMenu.form;
-                    setFormActionMenu(null);
-                    setDeleteTarget({
-                      entityType: 'form',
-                      id: target.formId,
-                      title: target.formTitle || target.formId,
-                      version: target.version,
-                      note: target.linkedProcesses.length > 0
-                        ? 'Process links, submitted records, and attached photos will be preserved; restoring this form reactivates it automatically.'
-                        : 'This form will be stored in Trash and can be restored anytime.'
-                    });
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    width: '100%',
-                    padding: '0.45rem 0.65rem',
-                    border: 'none',
-                    borderRadius: '6px',
-                    background: 'transparent',
-                    color: 'var(--danger, #dc2626)',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    textAlign: 'left',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <Trash2 size={13} />
-                  <span>Move to Trash</span>
-                </button>
-              </div>,
-              document.body
-            )}
-
-            {processSelectDialog && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(15, 23, 42, 0.65)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-                backdropFilter: 'blur(4px)'
-              }}>
-                <div style={{
-                  background: '#ffffff',
-                  borderRadius: '12px',
-                  width: '100%',
-                  maxWidth: '480px',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                  padding: '1.75rem',
-                  border: '1px solid var(--neutral-border)'
-                }}>
-                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Select Linked Process
-                  </h4>
-                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    This form is linked to multiple active processes. Select a process to continue:
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
-                    {processSelectDialog.form.linkedProcesses.map((lp: any) => (
-                      <button
-                        key={lp.id}
-                        onClick={() => {
-                          const action = processSelectDialog.action;
-                          const form = processSelectDialog.form;
-                          setProcessSelectDialog(null);
-                          if (action === 'fill') {
-                            if (onOpenFormFiller) {
-                              onOpenFormFiller(lp.id, form.formName, form.rawRecord);
-                            } else {
-                              onSelectProcess(lp.id);
-                            }
-                          } else {
-                            if (onViewFormSubmissions) {
-                              onViewFormSubmissions(form.formName || form.formId);
-                            }
-                          }
-                        }}
-                        className="btn btn-secondary"
-                        style={{
-                          width: '100%',
-                          textAlign: 'left',
-                          justifyContent: 'flex-start',
-                          padding: '0.75rem 1rem',
-                          fontWeight: 600,
-                          fontSize: '0.88rem',
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}
-                      >
-                        <FileText size={16} style={{ color: 'var(--primary)' }} />
-                        {lp.title}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => setProcessSelectDialog(null)}
-                      className="btn"
-                      style={{
-                        background: '#f1f5f9',
-                        color: 'var(--text-secondary)',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        fontWeight: 600,
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        );
-      })()
-      ) : filteredFamilies.length === 0 ? (
+      ) : (visibleActiveTree.length === 0 && visibleStandaloneForms.length === 0 && retiredFamilies.length === 0) ? (
         <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
           <h3>No Processes Found</h3>
@@ -1856,16 +1632,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Active Processes Group */}
-          {activeFamilies.length > 0 ? (
-            renderProcessListTable(activeFamilies, false)
+          {/* Active Processes & Linked Forms Tree */}
+          {(visibleActiveTree.length > 0 || visibleStandaloneForms.length > 0) ? (
+            renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false)
           ) : (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--neutral-border)', borderRadius: '8px', background: '#fcfcfc' }}>
               No active processes available.
             </div>
           )}
 
-          {/* Retired Processes Group */}
+          {/* Retired Group */}
           {retiredFamilies.length > 0 && (
             <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
               <button
@@ -1886,16 +1662,290 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   outline: 'none'
                 }}
               >
-                {retiredCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                <span>Retired Processes ({retiredFamilies.length})</span>
+                {retiredCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                <span>Retired ({retiredFamilies.length})</span>
               </button>
 
-              {!retiredCollapsed && renderProcessListTable(retiredFamilies, true)}
+              {!retiredCollapsed && renderProcessTreeTable(
+                retiredFamilies.map(family => ({ family, formsToShow: [], isExpanded: false })),
+                [],
+                true
+              )}
             </div>
           )}
         </div>
       )}
       </div>
+
+      {rowActionMenu && ReactDOM.createPortal(
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: rowActionMenu.openUpward ? undefined : `${rowActionMenu.top}px`,
+            bottom: rowActionMenu.openUpward ? `${window.innerHeight - rowActionMenu.top}px` : undefined,
+            right: `${rowActionMenu.right}px`,
+            zIndex: 9998,
+            minWidth: '156px',
+            background: '#ffffff',
+            border: '1px solid var(--neutral-border)',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05)',
+            padding: '4px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px'
+          }}
+        >
+          {rowActionMenu.kind === 'process' ? (
+            <>
+              {hasPermission('design_document') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.proc;
+                    setRowActionMenu(null);
+                    onEditProcess(target.id);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Edit2 size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Edit</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = rowActionMenu.proc;
+                  setRowActionMenu(null);
+                  if (onPrintProcess) {
+                    onPrintProcess(target.id);
+                  } else {
+                    onSelectProcess(target.id);
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.45rem 0.65rem',
+                  border: 'none',
+                  borderRadius: '6px',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Printer size={13} style={{ color: 'var(--text-secondary)' }} />
+                <span>Print</span>
+              </button>
+
+              {hasPermission('design_document') && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = rowActionMenu.proc;
+                      setRowActionMenu(null);
+                      setDeleteTarget({
+                        entityType: 'process',
+                        id: target.id,
+                        title: target.title,
+                        version: target.version,
+                        note: 'This process and its links will be stored in Trash and can be restored anytime.'
+                      });
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'var(--danger, #dc2626)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {onViewFormSubmissions && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.form;
+                    setRowActionMenu(null);
+                    onViewFormSubmissions(target.formName || target.formId);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <FileText size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Submissions</span>
+                </button>
+              )}
+
+              {hasPermission('design_document') && (
+                <>
+                  <button
+                    type="button"
+                    disabled={duplicatingFormId === rowActionMenu.form.formId}
+                    onClick={() => {
+                      const target = rowActionMenu.form;
+                      const procId = rowActionMenu.processId;
+                      setRowActionMenu(null);
+                      handleDuplicateFormDirect(target, procId);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Copy size={13} style={{ color: 'var(--text-secondary)' }} />
+                    <span>{duplicatingFormId === rowActionMenu.form.formId ? 'Duplicating...' : 'Duplicate'}</span>
+                  </button>
+
+                  {onOpenReportBuilder && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = rowActionMenu.form;
+                        setRowActionMenu(null);
+                        const linkedRep = reportTemplates.find(r => r.linkedFormId === target.formId);
+                        onOpenReportBuilder(target.formId, linkedRep?.reportId);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        width: '100%',
+                        padding: '0.45rem 0.65rem',
+                        border: 'none',
+                        borderRadius: '6px',
+                        background: 'transparent',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.8rem',
+                        fontWeight: 500,
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <SlidersHorizontal size={13} style={{ color: 'var(--text-secondary)' }} />
+                      <span>Report</span>
+                    </button>
+                  )}
+
+                  <div style={{ height: '1px', background: 'var(--neutral-border)', margin: '3px 4px' }} />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = rowActionMenu.form;
+                      setRowActionMenu(null);
+                      setDeleteTarget({
+                        entityType: 'form',
+                        id: target.formId,
+                        title: target.formTitle || target.formId,
+                        version: target.version,
+                        note: target.linkedProcesses.length > 0
+                          ? 'Process links, submitted records, and attached photos will be preserved; restoring this form reactivates it automatically.'
+                          : 'This form will be stored in Trash and can be restored anytime.'
+                      });
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.45rem 0.65rem',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: 'transparent',
+                      color: 'var(--danger, #dc2626)',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>,
+        document.body
+      )}
 
       {!(isViewingSubmission && viewMode === 'submissions') && (
         <footer className="quote-footer no-print" style={{ marginTop: '2.5rem' }}>
@@ -1907,11 +1957,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
       <ConfirmModal
         isOpen={Boolean(deleteTarget)}
-        title="Move to Trash?"
+        title="Delete item?"
         message={
           deleteTarget ? (
             <div>
-              Are you sure you want to move <strong>{deleteTarget.title}</strong> (<code>{deleteTarget.id}</code>) to Trash?
+              Are you sure you want to delete <strong>{deleteTarget.title}</strong> (<code>{deleteTarget.id}</code>)?
               {deleteTarget.note && (
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                   {deleteTarget.note}
@@ -1920,7 +1970,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           ) : ''
         }
-        confirmText="Move to Trash"
+        confirmText="Delete"
         cancelText="Cancel"
         variant="warning"
         loading={deletingTarget}

@@ -613,116 +613,110 @@ table.print-table--horizontal td {
   border-bottom: 1px solid #e2e8f0 !important;
 }
 
-/* Dashboard Forms Table Hover-to-Reveal Actions */
-.dashboard-form-row {
-  transition: background-color 0.15s ease;
+/* Dashboard Unified Tree Table & Hover-to-Reveal Actions */
+.dashboard-tree-row {
+  background-color: var(--neutral-card);
+  transition: background-color 0.14s ease;
 }
 
-.dashboard-form-row:hover {
-  background-color: #f8fafc !important;
+.dashboard-tree-row:hover {
+  background-color: #f8fafc;
 }
 
-.dashboard-form-actions-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 250px;
-  position: relative;
+.dashboard-form-subrow {
+  background-color: #fafbfc;
+  transition: background-color 0.14s ease;
 }
 
-.dashboard-form-actions-idle {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  opacity: 0.5;
-  transition: opacity 0.15s ease;
+.dashboard-form-subrow:hover {
+  background-color: #f0fdfa;
 }
 
-.dashboard-form-row:hover .dashboard-form-actions-idle {
-  display: none;
-}
-
-.dashboard-form-actions-reveal {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: #ffffff;
-  padding: 0.2rem 0.35rem;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(2px);
-  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.18s;
-}
-
-.dashboard-form-row:hover .dashboard-form-actions-reveal {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.dashboard-btn-cluster {
-  display: inline-flex;
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.dashboard-btn-cluster .btn-cluster-item {
-  border: none;
-  border-radius: 0;
-  height: 26px;
-  padding: 0 0.5rem;
+.dashboard-title-link {
   background: transparent;
-  color: #334155;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
   cursor: pointer;
+  transition: color 0.14s ease;
+}
+
+.dashboard-title-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dashboard-row-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.14s ease;
+}
+
+.dashboard-tree-row:hover .dashboard-row-reveal,
+.dashboard-tree-row:focus-within .dashboard-row-reveal,
+.dashboard-form-subrow:hover .dashboard-row-reveal,
+.dashboard-form-subrow:focus-within .dashboard-row-reveal {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dashboard-more-trigger {
+  opacity: 0.45;
+  transition: opacity 0.14s ease, background-color 0.14s ease, color 0.14s ease;
+}
+
+.dashboard-tree-row:hover .dashboard-more-trigger,
+.dashboard-tree-row:focus-within .dashboard-more-trigger,
+.dashboard-form-subrow:hover .dashboard-more-trigger,
+.dashboard-form-subrow:focus-within .dashboard-more-trigger,
+.dashboard-more-trigger.is-open,
+.dashboard-more-trigger:focus-visible {
+  opacity: 1;
+}
+
+.dashboard-fill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  height: 26px;
+  padding: 0 0.55rem;
   margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
 
-.dashboard-btn-cluster .btn-cluster-item:hover {
-  background: #ffffff;
-  color: #0f172a;
+.dashboard-form-subrow:hover .dashboard-fill-btn,
+.dashboard-form-subrow:focus-within .dashboard-fill-btn {
+  background: var(--neutral-card);
+  border-color: var(--border-focus);
 }
 
-.dashboard-btn-cluster .btn-cluster-item:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.dashboard-fill-btn:hover {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #ffffff !important;
 }
 
-.dashboard-actions-divider {
-  width: 1px;
-  height: 16px;
-  background: #cbd5e1;
-  margin: 0 0.1rem;
-}
-
-/* Card hover actions */
-.dashboard-card-hover {
-  transition: all 0.2s ease;
-}
-
-.dashboard-card-hover:hover {
-  border-color: #93c5fd !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08) !important;
-}
-
-.dashboard-card-actions {
-  opacity: 0.65;
-  transition: opacity 0.2s ease;
-}
-
-.dashboard-card-hover:hover .dashboard-card-actions {
-  opacity: 1;
+@media (hover: none) {
+  .dashboard-row-reveal,
+  .dashboard-more-trigger {
+    opacity: 0.85;
+    pointer-events: auto;
+  }
 }
 
 

@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-11-26) — Editorial `.quote-footer` CSS & unified dot-pill table design tokens verified against `src/index.css` |
+| **Verified At Commit** | (2026-11-27) — Unified tree-table classes (`.dashboard-tree-row`, `.dashboard-form-subrow`, `.dashboard-row-reveal`, `.dashboard-fill-btn`) verified against `src/index.css` & `Dashboard.tsx` |
 
 ## 1. Design Principles
 
@@ -204,7 +204,6 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
 | 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Pattern (Option A vs Option C):** Documented dynamic layout engine. Standard fields use Option A (2-column fixed 35%/65% grid) to align checkbox icons vertically; detailed/long fields use Option C (Top-aligned label + 1rem indented options). |
 | 2026-08-17 | `3504b80` | **Table Group Header Rows UI Pattern:** Documented category banner rows in tables. Full width (`colSpan=cols.length`), medium gray background (`#E5E7EB`), bold text (`fontWeight: 700`), saving 30–40% vertical whitespace. |
@@ -218,3 +217,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-10-26 | `CURRENT` | **Subtraction Design Mantra & ASCII Wireframing:** Added §1.1 codifying the 3 Crucial Audit Questions, 4 Minimalist Criteria, Zero UI Garbage Blacklist, and mandatory Before/After ASCII wireframe comparison with UI Element Audit Table in planning artifacts. |
 | 2026-11-26 | `CURRENT` | **Compact `.quote-card` & Operational Chrome Discipline:** Tightened `.quote-card` vertical rhythm (`padding: 1rem 1.5rem`, `margin-bottom: 1.25rem`, `1.02rem` quote text) in `src/index.css` and restricted rendering to the `Processes` home view while replacing bordered row buttons and pill tabs with unified `36px` Segmented Tabs and borderless ghost row actions. |
 | 2026-11-26 | `CURRENT` | **Editorial Quote Footer & Edge-to-Edge List Standard:** Replaced `.quote-card` top banner CSS with bottom-anchored `.quote-footer` in `src/index.css`, and standardized edge-to-edge `padding: 0` table cards, dot-pill status badges, and clickable table rows across all Dashboard views. |
+| 2026-11-27 | `CURRENT` | **Unified Tree Table Hover-to-Reveal & Preattentive Version-Status Pattern (`index.css`, `Dashboard`):** Replaced legacy `.dashboard-form-row`/`.dashboard-btn-cluster` classes with `.dashboard-tree-row`, `.dashboard-form-subrow`, `.dashboard-title-link`, `.dashboard-row-reveal`, `.dashboard-more-trigger`, and `.dashboard-fill-btn` (with `@media (hover: none)` touch fallback), pairing silent active versions + `6px` draft dots (`renderPreattentiveVersion`) with canonical single-verb actions (`Fill`, `Edit`, `Print`, `Duplicate`, `Delete`). |

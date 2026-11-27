@@ -42,7 +42,7 @@ const MainApp: React.FC = () => {
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [triggerProcessPrint, setTriggerProcessPrint] = useState(false);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'reports' | 'guide' | 'trash'>('processes');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'submissions' | 'reports' | 'guide' | 'trash'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'general' | 'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -229,13 +229,6 @@ const MainApp: React.FC = () => {
     setInitialFormFilter(formName);
     setDashboardViewMode('submissions');
     setPage('dashboard');
-  };
-
-  const handlePrintForm = (processId: string, formName: string) => {
-    setPrevPage(page);
-    setSelectedProcessId(processId);
-    setInitialPrintFormName(formName);
-    setPage('reader');
   };
 
   const handlePrintProcess = (id: string) => {
@@ -497,7 +490,6 @@ const MainApp: React.FC = () => {
             onSelectProcess={handleSelectProcess}
             onEditProcess={handleEditProcess}
             onViewFormSubmissions={handleViewFormSubmissions}
-            onPrintForm={handlePrintForm}
             onPrintProcess={handlePrintProcess}
             onOpenFormFiller={handleOpenFormFiller}
             onOpenReportBuilder={(formId, reportId) => setReportBuilderState({ isOpen: true, formId, reportId })}
