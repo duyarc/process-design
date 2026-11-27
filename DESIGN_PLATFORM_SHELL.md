@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-11-27) — Unified 1-row `36px` control bar (`DashboardToolbar` `bare` + `leading`), `⋯`-only secondary actions across `Processes`/`Reports`/`Submissions` (with `Edit` in Form `⋯` menu), `2.65rem` child `ID` indent, `· N` counts, and borderless-top `.paper-card` data sheets verified against `Dashboard.tsx` & `DashboardToolbar.tsx` |
+| **Verified At Commit** | (2026-11-27) — `App` Google OAuth `VITE_GOOGLE_CLIENT_ID` configuration verified against `App.tsx`; unified 1-row `36px` control bar (`DashboardToolbar` `bare` + `leading`), `⋯`-only secondary actions across `Processes`/`Reports`/`Submissions` (with `Edit` in Form `⋯` menu), `2.65rem` child `ID` indent, `· N` counts, and borderless-top `.paper-card` data sheets verified against `Dashboard.tsx` & `DashboardToolbar.tsx` |
 
 ### Quick File Index
 
@@ -52,7 +52,7 @@ The Platform Shell is the **foundational layer** that glues all other modules (P
 | Feature | Detail |
 |---|---|
 | **Credentials Login** | Standard username/password form calling `/api/auth/login`. |
-| **Google OAuth** | "Đăng nhập bằng Google" button integrated via `@react-oauth/google`. |
+| **Google OAuth** | "Đăng nhập bằng Google" button integrated via `@react-oauth/google`; `<GoogleOAuthProvider>` in `App.tsx` reads `import.meta.env.VITE_GOOGLE_CLIENT_ID` (falling back to the default public Client ID). |
 | **Error Handling** | Displays explicit error messages from the backend on failure. |
 
 ### Dashboard
