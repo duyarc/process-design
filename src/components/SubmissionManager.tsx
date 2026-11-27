@@ -831,7 +831,7 @@ export default function SubmissionManager({
 
           return (
             <div
-              className="paper-card accent-teal"
+              className="paper-card"
               style={{
                 padding: 0,
                 overflow: 'hidden',
@@ -1018,26 +1018,19 @@ export default function SubmissionManager({
                               </td>
 
                               <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, verticalAlign: 'middle' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                                   <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                                     {group.formTitle}
                                   </span>
                                   <span
                                     style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      height: '18px',
-                                      padding: '0 0.42rem',
-                                      borderRadius: '999px',
-                                      background: '#f1f5f9',
+                                      fontSize: '0.78rem',
                                       color: 'var(--text-muted)',
-                                      fontSize: '0.7rem',
-                                      fontWeight: 600,
+                                      fontWeight: 400,
                                       fontVariantNumeric: 'tabular-nums'
                                     }}
                                   >
-                                    {group.submissions.length}
+                                    · {group.submissions.length}
                                   </span>
                                   {group.processId !== 'unlinked' && (
                                     <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 400 }}>
@@ -1093,7 +1086,7 @@ export default function SubmissionManager({
                                   className="dashboard-form-subrow"
                                   style={{ borderBottom: isLastGroup ? 'none' : '1px solid var(--neutral-border)' }}
                                 >
-                                  <td className="dashboard-subrow-cell-last" style={{ padding: '0.42rem 0.5rem 0.42rem 2.1rem' }} />
+                                  <td className="dashboard-subrow-cell-last" style={{ padding: '0.42rem 0.5rem 0.42rem 2.65rem' }} />
                                   <td className="dashboard-form-spine-cell is-first is-last">
                                     <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                       No submissions yet.
@@ -1138,7 +1131,7 @@ export default function SubmissionManager({
                                     >
                                       <td
                                         className={lastCellClass}
-                                        style={{ padding: '0.42rem 0.5rem 0.42rem 2.1rem', verticalAlign: 'middle' }}
+                                        style={{ padding: '0.42rem 0.5rem 0.42rem 2.65rem', verticalAlign: 'middle' }}
                                       >
                                         <span
                                           title={`#${sub.id}`}

@@ -55,26 +55,29 @@ const renderPreattentiveVersion = (
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '0.4rem',
+        gap: '0.35rem',
         fontSize: '0.78rem',
         fontWeight: isParent ? 500 : 400,
         color: isParent ? 'var(--text-secondary)' : 'var(--text-muted)',
         fontVariantNumeric: 'tabular-nums'
       }}
     >
-      <span
-        aria-label={isDraft ? 'Draft' : undefined}
-        style={{
-          width: '7px',
-          height: '7px',
-          borderRadius: '50%',
-          border: isDraft ? '1.5px solid var(--warning)' : '1.5px solid transparent',
-          background: 'transparent',
-          boxSizing: 'border-box',
-          flexShrink: 0
-        }}
-      />
       {selectNode || <span>{formatCleanVersion(currentVersionStr)}</span>}
+      {isDraft && (
+        <span
+          aria-label="Draft"
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            border: '1.5px solid var(--warning)',
+            opacity: 0.6,
+            background: 'transparent',
+            boxSizing: 'border-box',
+            flexShrink: 0
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -824,7 +827,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       >
         <td
           className={lastCellClass}
-          style={{ padding: '0.42rem 0.5rem 0.42rem 2.1rem', verticalAlign: 'middle' }}
+          style={{ padding: '0.42rem 0.5rem 0.42rem 2.65rem', verticalAlign: 'middle' }}
         >
           <span
             title={form.formId}
@@ -876,41 +879,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               Fill
             </button>
-            {(hasPermission('design_document') || hasFormMenuItems) && (
-              <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
-                {hasPermission('design_document') && (
-                  <button
-                    type="button"
-                    title="Edit"
-                    style={ghostActionBtnStyle}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                    onClick={() => onEditProcess(procId === 'unlinked' ? null : procId, 'form', form.formName)}
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                )}
-                {hasFormMenuItems && (
-                  <button
-                    type="button"
-                    title="More"
-                    className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
-                    onClick={(e) => openRowActionMenu(e, { key: menuKey, kind: 'form', form, processId: procId })}
-                    style={{
-                      ...ghostActionBtnStyle,
-                      background: isMenuOpen ? '#e2e8f0' : 'transparent',
-                      color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
-                      e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
-                    }}
-                  >
-                    <MoreHorizontal size={15} />
-                  </button>
-                )}
-              </span>
+            {hasFormMenuItems && (
+              <button
+                type="button"
+                title="More"
+                className={`dashboard-more-trigger ${isMenuOpen ? 'is-open' : ''}`}
+                onClick={(e) => openRowActionMenu(e, { key: menuKey, kind: 'form', form, processId: procId })}
+                style={{
+                  ...ghostActionBtnStyle,
+                  background: isMenuOpen ? '#e2e8f0' : 'transparent',
+                  color: isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = isMenuOpen ? '#e2e8f0' : 'transparent';
+                  e.currentTarget.style.color = isMenuOpen ? 'var(--text-primary)' : 'var(--text-secondary)';
+                }}
+              >
+                <MoreHorizontal size={15} />
+              </button>
             )}
           </div>
         </td>
@@ -934,7 +921,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     return (
       <div
-        className={`paper-card ${isRetired ? '' : 'accent-teal'}`}
+        className="paper-card"
         style={{
           padding: 0,
           overflow: 'hidden',
@@ -1090,7 +1077,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                       </td>
                       <td style={{ padding: `${rowPadTop} 0.75rem ${rowPadBottom} 0.75rem`, verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             className="dashboard-title-link"
@@ -1105,20 +1092,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {hasForms && (
                             <span
                               style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '18px',
-                                padding: '0 0.42rem',
-                                borderRadius: '999px',
-                                background: '#f1f5f9',
+                                fontSize: '0.78rem',
                                 color: 'var(--text-muted)',
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
+                                fontWeight: 400,
                                 fontVariantNumeric: 'tabular-nums'
                               }}
                             >
-                              {formsToShow.length}
+                              · {formsToShow.length}
                             </span>
                           )}
                         </div>
@@ -1136,30 +1116,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </td>
                       <td style={{ padding: `${showForms ? '0.68rem' : '0.62rem'} 1rem ${showForms ? '0.32rem' : '0.62rem'} 0.75rem`, textAlign: 'right', verticalAlign: 'middle' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                          <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
-                            {hasPermission('design_document') && (
-                              <button
-                                type="button"
-                                title="Edit"
-                                style={ghostActionBtnStyle}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                onClick={() => onEditProcess(currentRep.id)}
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              title="Print"
-                              style={ghostActionBtnStyle}
-                              onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                              onClick={() => onPrintProcess ? onPrintProcess(currentRep.id) : onSelectProcess(currentRep.id)}
-                            >
-                              <Printer size={14} />
-                            </button>
-                          </span>
                           <button
                             type="button"
                             title="More"
@@ -1226,20 +1182,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </span>
                         <span
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '18px',
-                            padding: '0 0.42rem',
-                            borderRadius: '999px',
-                            background: '#f1f5f9',
+                            fontSize: '0.78rem',
                             color: 'var(--text-muted)',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
+                            fontWeight: 400,
                             fontVariantNumeric: 'tabular-nums'
                           }}
                         >
-                          {standaloneItems.length}
+                          · {standaloneItems.length}
                         </span>
                       </div>
                     </td>
@@ -1518,7 +1467,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           if (filteredReports.length === 0) {
             return (
               <div
-                className="paper-card accent-teal"
+                className="paper-card"
                 style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
               >
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
@@ -1563,7 +1512,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           return (
             <div
-              className="paper-card accent-teal"
+              className="paper-card"
               style={{
                 padding: 0,
                 overflow: 'hidden',
@@ -1635,20 +1584,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </td>
                           <td style={{ padding: '0.62rem 1rem 0.62rem 0.75rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', gap: '0.15rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {onOpenReportBuilder && (
-                                <span className={`dashboard-row-reveal ${isMenuOpen ? 'has-open-menu' : ''}`}>
-                                  <button
-                                    type="button"
-                                    style={ghostActionBtnStyle}
-                                    title="Edit"
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                    onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                </span>
-                              )}
                               {hasReportMenuItems && (
                                 <button
                                   type="button"
@@ -1684,7 +1619,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         if (visibleActiveTree.length === 0 && visibleStandaloneForms.length === 0 && retiredFamilies.length === 0) {
           return (
             <div
-              className="paper-card accent-teal"
+              className="paper-card"
               style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
             >
               <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
@@ -1734,7 +1669,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false)
             ) : (
               <div
-                className="paper-card accent-teal"
+                className="paper-card"
                 style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
               >
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#fcfcfc' }}>
@@ -1908,6 +1843,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </>
           ) : rowActionMenu.kind === 'form' ? (
             <>
+              {hasPermission('design_document') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = rowActionMenu.form;
+                    const procId = rowActionMenu.processId;
+                    setRowActionMenu(null);
+                    onEditProcess(procId === 'unlinked' ? null : procId, 'form', target.formName);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.45rem 0.65rem',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <Edit2 size={13} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Edit</span>
+                </button>
+              )}
+
               {onViewFormSubmissions && (
                 <button
                   type="button"
