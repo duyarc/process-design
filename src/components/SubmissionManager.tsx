@@ -35,7 +35,6 @@ interface SubmissionManagerProps {
   cachedProcesses?: Process[];
   cachedForms?: any[];
   hideToolbar?: boolean;
-  headerSlot?: React.ReactNode;
   externalSearchTerm?: string;
   externalProcessFilter?: string;
   externalSignoffFilter?: 'ALL' | 'PENDING' | 'VERIFIED';
@@ -53,7 +52,6 @@ export default function SubmissionManager({
   cachedProcesses,
   cachedForms,
   hideToolbar = false,
-  headerSlot,
   externalSearchTerm,
   externalProcessFilter,
   externalSignoffFilter,
@@ -817,7 +815,7 @@ export default function SubmissionManager({
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {(() => {
-          const effectiveToolbar = headerSlot ?? (!hideToolbar ? (
+          const effectiveToolbar = !hideToolbar ? (
             <DashboardToolbar
               embedded
               searchQuery={searchTerm}
@@ -851,7 +849,7 @@ export default function SubmissionManager({
                 </>
               }
             />
-          ) : null);
+          ) : null;
 
           const hasActiveFilter = Boolean(searchTerm.trim() || signoffFilter !== 'ALL' || initialFormFilter);
           const expandableKeys = !hasActiveFilter ? formGroups.map(g => g.formKey) : [];

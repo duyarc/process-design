@@ -922,8 +922,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const renderProcessTreeTable = (
     treeItems: Array<{ family: (typeof processFamilies)[number]; formsToShow: any[]; isExpanded: boolean }>,
     standaloneItems: any[],
-    isRetired = false,
-    headerSlot?: React.ReactNode
+    isRetired = false
   ) => {
     const expandableKeys = !isRetired && !normalizedQuery
       ? [
@@ -947,7 +946,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           marginBottom: 0
         }}
       >
-        {headerSlot}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
@@ -1267,114 +1265,212 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const segmentedTabBtnStyle = (active: boolean): React.CSSProperties => ({
     height: '28px',
-    padding: '0 1rem',
+    padding: '0 0.9rem',
     borderRadius: '6px',
     border: 'none',
     fontSize: '0.82rem',
-    fontWeight: 600,
+    fontWeight: active ? 600 : 500,
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     margin: 0,
     transition: 'all 0.15s ease',
-    background: active ? 'var(--primary)' : 'transparent',
-    color: active ? '#ffffff' : 'var(--text-secondary)',
-    boxShadow: active ? '0 1px 2px rgba(16, 163, 163, 0.25)' : 'none'
+    background: active ? '#ffffff' : 'transparent',
+    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+    boxShadow: active ? '0 1px 2px rgba(15, 23, 42, 0.08)' : 'none'
   });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 145px)' }}>
       <div style={{ flex: 1 }}>
-      {/* View Switcher Tabs */}
+      {/* Unified Single-Row Control Bar */}
       {!(isViewingSubmission && viewMode === 'submissions') && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', minHeight: '36px', boxSizing: 'border-box' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box' }}>
-          <button
-            type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
-            style={segmentedTabBtnStyle(viewMode === 'processes')}
-          >
-            Processes
-          </button>
-          <button
-            type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); }}
-            style={segmentedTabBtnStyle(viewMode === 'submissions')}
-          >
-            Submissions
-          </button>
-          <button
-            type="button"
-            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); }}
-            style={segmentedTabBtnStyle(viewMode === 'reports')}
-          >
-            Reports
-          </button>
-        </div>
-
-        {viewMode !== 'guide' && canAccessTrash && (
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === 'trash' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => {
-              if (viewMode === 'trash') {
-                onViewModeChange && onViewModeChange(lastActiveTab);
-              } else {
-                onViewModeChange && onViewModeChange('trash');
-              }
-              setSearchQuery('');
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              height: '36px',
-              padding: '0 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              margin: 0
-            }}
-            title="Open System Trash"
-          >
-            <Trash2 size={13} />
-            <span>Trash</span>
-            {trashCount > 0 && (
-              <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                padding: '0 0.35rem',
-                borderRadius: '10px',
-                background: viewMode === 'trash' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
-                color: viewMode === 'trash' ? '#ffffff' : 'var(--text-primary)'
-              }}>
-                {trashCount}
-              </span>
-            )}
-          </button>
-        )}
-      </div>
-      )}
-
-      {viewMode === 'trash' && (
         <DashboardToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          placeholder="Search trash by ID, title, or deleted by..."
+          bare
+          hideSearch={viewMode === 'guide'}
+          searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
+          onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
+          placeholder={
+            viewMode === 'submissions'
+              ? 'Search submissions...'
+              : viewMode === 'reports'
+                ? 'Search reports...'
+                : viewMode === 'trash'
+                  ? 'Search trash...'
+                  : 'Search processes or forms...'
+          }
+          leading={
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', background: '#eef2f6', padding: '3px', borderRadius: '8px', border: '1px solid var(--neutral-border)', height: '36px', boxSizing: 'border-box', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
+                style={segmentedTabBtnStyle(viewMode === 'processes')}
+              >
+                Processes
+              </button>
+              <button
+                type="button"
+                onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); }}
+                style={segmentedTabBtnStyle(viewMode === 'submissions')}
+              >
+                Submissions
+              </button>
+              <button
+                type="button"
+                onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); }}
+                style={segmentedTabBtnStyle(viewMode === 'reports')}
+              >
+                Reports
+              </button>
+            </div>
+          }
+          filters={
+            viewMode === 'submissions' ? (
+              <>
+                <select
+                  aria-label="Filter by process"
+                  value={submissionProcessFilter}
+                  onChange={(e) => setSubmissionProcessFilter(e.target.value)}
+                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', maxWidth: '185px', boxSizing: 'border-box', outline: 'none' }}
+                >
+                  <option value="ALL">All Processes</option>
+                  {processes.filter(p => p.id !== 'unlinked').map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                  <option value="unlinked">Standalone Forms</option>
+                </select>
+                <select
+                  aria-label="Filter by review status"
+                  value={submissionSignoffFilter}
+                  onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
+                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '8px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending Review</option>
+                  <option value="VERIFIED">Verified</option>
+                </select>
+              </>
+            ) : undefined
+          }
           actions={
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                onViewModeChange && onViewModeChange(lastActiveTab);
-                setSearchQuery('');
-              }}
-              style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <ArrowLeft size={15} />
-              Back
-            </button>
+            <>
+              {viewMode !== 'guide' && canAccessTrash && (
+                <button
+                  type="button"
+                  title="Trash"
+                  aria-label="Trash"
+                  onClick={() => {
+                    if (viewMode === 'trash') {
+                      onViewModeChange && onViewModeChange(lastActiveTab);
+                    } else {
+                      onViewModeChange && onViewModeChange('trash');
+                    }
+                    setSearchQuery('');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    height: '36px',
+                    padding: '0 0.55rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: viewMode === 'trash' ? 'rgba(16, 163, 163, 0.12)' : 'transparent',
+                    color: viewMode === 'trash' ? 'var(--primary)' : 'var(--text-secondary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    margin: 0,
+                    transition: 'background 0.15s ease, color 0.15s ease'
+                  }}
+                  onMouseEnter={e => {
+                    if (viewMode !== 'trash') {
+                      e.currentTarget.style.background = '#e2e8f0';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = viewMode === 'trash' ? 'rgba(16, 163, 163, 0.12)' : 'transparent';
+                    e.currentTarget.style.color = viewMode === 'trash' ? 'var(--primary)' : 'var(--text-secondary)';
+                  }}
+                >
+                  <Trash2 size={15} />
+                  {trashCount > 0 && (
+                    <span style={{ fontVariantNumeric: 'tabular-nums', fontSize: '0.75rem', fontWeight: 600 }}>
+                      {trashCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {viewMode === 'trash' ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    onViewModeChange && onViewModeChange(lastActiveTab);
+                    setSearchQuery('');
+                  }}
+                  style={{ margin: 0, height: '36px', padding: '0 0.8rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', boxShadow: 'none' }}
+                >
+                  <ArrowLeft size={14} />
+                  <span>Back</span>
+                </button>
+              ) : viewMode === 'processes' && hasPermission('design_document') ? (
+                <button
+                  type="button"
+                  onClick={() => onEditProcess(null)}
+                  style={{
+                    margin: 0,
+                    height: '36px',
+                    padding: '0 0.85rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--primary)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--secondary)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+                >
+                  <Plus size={15} strokeWidth={2.25} />
+                  <span>New</span>
+                </button>
+              ) : viewMode === 'reports' && hasPermission('design_document') && onOpenReportBuilder ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenReportBuilder()}
+                  style={{
+                    margin: 0,
+                    height: '36px',
+                    padding: '0 0.85rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--primary)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--secondary)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; }}
+                >
+                  <Plus size={15} strokeWidth={2.25} />
+                  <span>New</span>
+                </button>
+              ) : null}
+            </>
           }
         />
       )}
@@ -1393,40 +1489,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <SubmissionManager
           isEmbedded={true}
           hideToolbar={true}
-          headerSlot={
-            <DashboardToolbar
-              embedded
-              searchQuery={submissionSearchTerm}
-              onSearchChange={setSubmissionSearchTerm}
-              placeholder="Search submissions..."
-              filters={
-                <>
-                  <select
-                    aria-label="Filter by process"
-                    value={submissionProcessFilter}
-                    onChange={(e) => setSubmissionProcessFilter(e.target.value)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Processes</option>
-                    {processes.filter(p => p.id !== 'unlinked').map(p => (
-                      <option key={p.id} value={p.id}>{p.title}</option>
-                    ))}
-                    <option value="unlinked">Standalone Forms</option>
-                  </select>
-                  <select
-                    aria-label="Filter by review status"
-                    value={submissionSignoffFilter}
-                    onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
-                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="PENDING">Pending Review</option>
-                    <option value="VERIFIED">Verified</option>
-                  </select>
-                </>
-              }
-            />
-          }
           initialFormFilter={initialFormFilter}
           cachedProcesses={processes}
           cachedForms={allForms}
@@ -1469,34 +1531,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
             );
           });
 
-          const reportsToolbar = (
-            <DashboardToolbar
-              embedded
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              placeholder="Search reports..."
-              actions={
-                hasPermission('design_document') && onOpenReportBuilder ? (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => onOpenReportBuilder()}
-                    style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  >
-                    <Plus size={16} />
-                    New Report
-                  </button>
-                ) : undefined
-              }
-            />
-          );
-
           if (filteredReports.length === 0) {
             return (
               <div
                 className="paper-card accent-teal"
                 style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
               >
-                {reportsToolbar}
                 <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                   <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
                   <h3>No Report Templates Found</h3>
@@ -1508,9 +1548,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {searchQuery ? (
                     <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
                   ) : (
-                    onOpenReportBuilder && (
-                      <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
-                        <Plus size={16} /> New Report
+                    hasPermission('design_document') && onOpenReportBuilder && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenReportBuilder()}
+                        style={{
+                          height: '36px',
+                          padding: '0 0.9rem',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'var(--primary)',
+                          color: '#ffffff',
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={15} strokeWidth={2.25} />
+                        <span>New</span>
                       </button>
                     )
                   )}
@@ -1530,7 +1588,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 marginBottom: 0
               }}
             >
-              {reportsToolbar}
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
@@ -1640,34 +1697,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           );
         })()
       ) : (() => {
-        const processesToolbar = (
-          <DashboardToolbar
-            embedded
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            placeholder="Search processes or forms..."
-            actions={
-              hasPermission('design_document') ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={() => onEditProcess(null)}
-                  style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  <Plus size={16} />
-                  New Process
-                </button>
-              ) : undefined
-            }
-          />
-        );
-
         if (visibleActiveTree.length === 0 && visibleStandaloneForms.length === 0 && retiredFamilies.length === 0) {
           return (
             <div
               className="paper-card accent-teal"
               style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
             >
-              {processesToolbar}
               <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                 <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
                 <h3>No Processes Found</h3>
@@ -1680,9 +1715,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
                 ) : (
                   hasPermission('design_document') && (
-                    <button className="btn btn-primary" onClick={() => onEditProcess(null)}>
-                      <Plus size={18} />
-                      New Process
+                    <button
+                      type="button"
+                      onClick={() => onEditProcess(null)}
+                      style={{
+                        height: '36px',
+                        padding: '0 0.9rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'var(--primary)',
+                        color: '#ffffff',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={15} strokeWidth={2.25} />
+                      <span>New</span>
                     </button>
                   )
                 )}
@@ -1693,15 +1745,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Single Hero Sheet: Embedded Toolbar + Active Processes & Linked Forms Tree */}
+            {/* Pure Editorial Data Sheet: Active Processes & Linked Forms Tree */}
             {(visibleActiveTree.length > 0 || visibleStandaloneForms.length > 0) ? (
-              renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false, processesToolbar)
+              renderProcessTreeTable(visibleActiveTree, visibleStandaloneForms, false)
             ) : (
               <div
                 className="paper-card accent-teal"
                 style={{ padding: 0, overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: 0 }}
               >
-                {processesToolbar}
                 <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#fcfcfc' }}>
                   No active processes available.
                 </div>
